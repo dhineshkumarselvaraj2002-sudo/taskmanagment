@@ -1,0 +1,263 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+  CANCELLED
+  BLOCKED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_COMMENTED
+  DEADLINE_APPROACHING
+  DEADLINE_PASSED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  USER_MENTIONED
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+model User {
+  id                String         @id @default(cuid())
+  name              String
+  email             String         @unique
+  password          String?
+  role              Role           @default(USER)
+  image             String?
+  isActive          Boolean        @default(true)
+  emailNotifications Boolean       @default(true)
+  emailVerified     DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  accounts          Account[]
+  sessions          Session[]
+  assignedTasks     Task[]         @relation("AssignedTasks")
+  createdTasks      Task[]         @relation("CreatedTasks")
+  notifications     Notification[]
+  comments          Comment[]
+  timeLogs          TimeLog[]
+  activityLogs      ActivityLog[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Task {
+  id                String         @id @default(cuid())
+  taskName          String
+  taskDescription   String         @db.Text
+  startDate         DateTime
+  endDate           DateTime
+  status            TaskStatus     @default(TODO)
+  priority          Priority       @default(MEDIUM)
+  category          String?
+  tags              String[]
+  estimatedHours    Int?
+  actualHours       Int?
+  progress          Int            @default(0)
+  isRecurring       Boolean        @default(false)
+  recurringPattern  String?
+  isArchived        Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  assignedToId      String
+  assignedTo        User           @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: Cascade)
+  
+  createdById       String
+  createdBy         User           @relation("CreatedTasks", fields: [createdById], references: [id])
+  
+  notifications     Notification[]
+  comments          Comment[]
+  attachments       Attachment[]
+  timeLogs          TimeLog[]
+  activityLogs      ActivityLog[]
+  checklistItems    ChecklistItem[]
+  
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+  @@index([priority])
+  @@map("tasks")
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  title       String
+  message     String             @db.Text
+  type        NotificationType
+  status      NotificationStatus @default(UNREAD)
+  createdAt   DateTime           @default(now())
+  
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskId      String?
+  task        Task?              @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  @@index([userId, status])
+  @@map("notifications")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("comments")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  fileUrl   String
+  fileSize  Int
+  fileType  String
+  createdAt DateTime @default(now())
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("attachments")
+}
+
+model TimeLog {
+  id          String   @id @default(cuid())
+  duration    Int      // in minutes
+  description String?  @db.Text
+  startTime   DateTime
+  endTime     DateTime?
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("time_logs")
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  order       Int
+  createdAt   DateTime @default(now())
+  
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@map("checklist_items")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String
+  entityType  String
+  entityId    String
+  changes     Json?
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  @@map("activity_logs")
+}
+
+model TaskTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String   @db.Text
+  category        String?
+  priority        Priority @default(MEDIUM)
+  estimatedHours  Int?
+  tags            String[]
+  checklistItems  Json?
+  createdAt       DateTime @default(now())
+  
+  @@map("task_templates")
+}
