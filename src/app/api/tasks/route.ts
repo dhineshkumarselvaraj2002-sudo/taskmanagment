@@ -152,7 +152,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    
+    // Convert date strings to Date objects
+    if (body.startDate) {
+      body.startDate = new Date(body.startDate)
+    }
+    if (body.endDate) {
+      body.endDate = new Date(body.endDate)
+    }
+
     const validatedData = taskSchema.parse(body)
+
+    // Check if assigned user exists
+    if (validatedData.assignedToId) {
+      const assignedUser = await prisma.user.findUnique({
+        where: { id: validatedData.assignedToId }
+      })
+      if (!assignedUser) {
+        return NextResponse.json(
+          { success: false, error: "Assigned user not found" },
+          { status: 400 }
+        )
+      }
+    }
 
     const task = await prisma.task.create({
       data: {
@@ -188,7 +210,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create notification for assigned user
-    if (task.assignedToId !== session.user.id) {
+    if (task.assignedToId && task.assignedToId !== session.user.id) {
       await prisma.notification.create({
         data: {
           title: "New Task Assigned",
@@ -208,6 +230,10 @@ export async function POST(request: NextRequest) {
         entityId: task.id,
         userId: session.user.id,
         taskId: task.id,
+        details: {
+          taskName: task.taskName,
+          assignedTo: task.assignedTo?.name,
+        },
       },
     })
 
@@ -218,6 +244,15 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("Create task error:", error)
+    
+    // Handle validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

@@ -136,15 +136,15 @@ export function CalendarView() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-lg">
         <CardContent className="p-0">
-          <div className="h-[600px]">
+          <div className="h-[800px] min-h-[800px]">
             <Calendar
               localizer={localizer}
               events={events}
               startAccessor="start"
               endAccessor="end"
-              style={{ height: "100%" }}
+              style={{ height: "100%", padding: "20px" }}
               view={view}
               views={[Views.MONTH, Views.WEEK, Views.DAY]}
               date={date}
@@ -276,44 +276,47 @@ function CustomToolbar({ date, view, onNavigate, onView }: any) {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border-b">
-      <div className="flex items-center space-x-2">
-        <Button variant="outline" size="sm" onClick={goToBack}>
-          <ChevronLeft className="h-4 w-4" />
+    <div className="flex items-center justify-between p-6 border-b bg-gray-50">
+      <div className="flex items-center space-x-3">
+        <Button variant="outline" size="default" onClick={goToBack} className="px-4 py-2">
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToNext}>
-          <ChevronRight className="h-4 w-4" />
+        <Button variant="outline" size="default" onClick={goToNext} className="px-4 py-2">
+          <ChevronRight className="h-5 w-5" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToCurrent}>
+        <Button variant="outline" size="default" onClick={goToCurrent} className="px-6 py-2">
           Today
         </Button>
       </div>
       
-      <div className="flex items-center space-x-2">
-        <h2 className="text-lg font-semibold">
+      <div className="flex items-center space-x-3">
+        <h2 className="text-2xl font-bold text-gray-900">
           {format(date, "MMMM yyyy")}
         </h2>
       </div>
       
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-3">
         <Button
           variant={view === Views.MONTH ? "default" : "outline"}
-          size="sm"
+          size="default"
           onClick={() => handleViewChange(Views.MONTH)}
+          className="px-6 py-2"
         >
           Month
         </Button>
         <Button
           variant={view === Views.WEEK ? "default" : "outline"}
-          size="sm"
+          size="default"
           onClick={() => handleViewChange(Views.WEEK)}
+          className="px-6 py-2"
         >
           Week
         </Button>
         <Button
           variant={view === Views.DAY ? "default" : "outline"}
-          size="sm"
+          size="default"
           onClick={() => handleViewChange(Views.DAY)}
+          className="px-6 py-2"
         >
           Day
         </Button>

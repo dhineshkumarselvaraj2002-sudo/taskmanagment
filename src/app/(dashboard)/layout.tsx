@@ -3,8 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { DashboardHeader } from "@/components/dashboard/header"
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardLayout as DashboardLayoutComponent } from "@/components/layout/dashboard-layout"
 
 export default function DashboardLayout({
   children,
@@ -21,8 +20,11 @@ export default function DashboardLayout({
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
@@ -32,14 +34,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardHeader />
-      <div className="flex">
-        <DashboardSidebar />
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardLayoutComponent>
+      {children}
+    </DashboardLayoutComponent>
   )
 }
