@@ -116,6 +116,11 @@
 }
 
 html {
+  /* scroll-behavior: smooth; - moved to data attribute for Next.js 15 compatibility */
+}
+
+/* Next.js 15 compatible smooth scrolling */
+html[data-scroll-behavior="smooth"] {
   scroll-behavior: smooth;
 }
 

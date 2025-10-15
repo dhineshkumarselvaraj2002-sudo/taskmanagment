@@ -1,44 +1,83 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createUser } from "@/lib/users"
-import { signUpSchema } from "@/lib/validations/auth"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+import { signUpApiSchema } from "@/lib/validations/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = signUpSchema.parse(body)
+    
+    // Validate the request body
+    const validatedData = signUpApiSchema.parse(body)
 
-    const user = await createUser({
-      name: validatedData.name,
-      email: validatedData.email,
-      password: validatedData.password,
-      role: validatedData.role,
+    console.log(body);
+    console.log(validatedData);
+    
+    
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: validatedData.email
+      }
     })
 
-    return NextResponse.json({
-      success: true,
-      message: "User created successfully",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        emailNotifications: user.emailNotifications,
-        createdAt: user.createdAt,
+    if (existingUser) {
+      return NextResponse.json(
+        { message: "User with this email already exists" },
+        { status: 400 }
+      )
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validatedData.password, 12)
+
+    // Create the user
+    const user = await prisma.user.create({
+      data: {
+        name: validatedData.name,
+        email: validatedData.email,
+        password: hashedPassword,
+        role: validatedData.role,
+        isActive: true,
+        emailNotifications: true,
+      }
+    })
+
+    // Return user data (without password)
+    const { password, ...userWithoutPassword } = user
+
+    // Create response with user data
+    const response = NextResponse.json(
+      { 
+        message: "User created successfully",
+        user: userWithoutPassword
       },
+      { status: 201 }
+    )
+
+    // Set user cookie for session management
+    response.cookies.set('user', JSON.stringify(userWithoutPassword), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
     })
+
+    return response
+
   } catch (error: any) {
     console.error("Registration error:", error)
-
+    
     if (error.name === 'ZodError') {
       return NextResponse.json(
-        { success: false, message: "Validation error", errors: error.errors },
+        { message: "Invalid input data", errors: error.errors },
         { status: 400 }
       )
     }
 
     return NextResponse.json(
-      { success: false, message: error.message || "Internal server error" },
+      { message: "Internal server error" },
       { status: 500 }
     )
   }

@@ -390,3 +390,8 @@ export interface ThemeConfig {
     lg: string
   }
 }
+
+// Search Params Type
+export interface SearchParams {
+  [key: string]: string | string[] | undefined
+}

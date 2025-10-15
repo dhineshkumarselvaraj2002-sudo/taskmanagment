@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { signIn } from "next-auth/react"
+// Removed NextAuth import - using custom authentication
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
 import { signInSchema, type SignInInput } from "@/lib/validations/auth"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 
@@ -18,6 +19,7 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -30,18 +32,43 @@ export default function SignInPage() {
   const onSubmit = async (data: SignInInput) => {
     setIsLoading(true)
     try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       })
 
-      if (result?.error) {
-        form.setError("root", { message: "Invalid credentials" })
+      const result = await response.json()
+
+      if (response.ok) {
+        // Store user data in localStorage for session management
+        localStorage.setItem('user', JSON.stringify(result.user))
+        
+        toast({
+          title: "Welcome Back!",
+          description: "You have been successfully signed in. Redirecting to your dashboard...",
+          variant: "success",
+        })
+        
+        // Redirect to appropriate dashboard based on role
+        const redirectPath = result.user.role === "ADMIN" ? "/admin" : "/user/dashboard"
+        router.push(redirectPath)
       } else {
-        router.push("/dashboard")
+        toast({
+          title: "Sign-in Failed",
+          description: result.message || "Invalid email or password. Please check your credentials and try again.",
+          variant: "destructive",
+        })
+        form.setError("root", { message: result.message || "Invalid credentials" })
       }
     } catch (error) {
+      toast({
+        title: "Sign-in Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
       form.setError("root", { message: "Something went wrong" })
     } finally {
       setIsLoading(false)
@@ -49,7 +76,13 @@ export default function SignInPage() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
+    // Google authentication is temporarily disabled
+    // You can implement custom Google OAuth if needed
+    toast({
+      title: "Google Sign-in Temporarily Unavailable",
+      description: "Please use email and password to sign in.",
+      variant: "destructive",
+    })
   }
 
   return (

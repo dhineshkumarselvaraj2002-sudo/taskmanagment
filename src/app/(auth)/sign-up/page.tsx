@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { signIn } from "next-auth/react"
+// Removed NextAuth import - using custom authentication
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,14 +12,15 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/hooks/use-toast"
 import { signUpSchema, type SignUpInput } from "@/lib/validations/auth"
 import { User, Mail, Lock, Shield, Eye, EyeOff, ArrowRight, Loader2, CheckCircle } from "lucide-react"
-import bcrypt from "bcryptjs"
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
@@ -27,6 +28,7 @@ export default function SignUpPage() {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       role: "USER",
     },
   })
@@ -34,26 +36,54 @@ export default function SignUpPage() {
   const onSubmit = async (data: SignUpInput) => {
     setIsLoading(true)
     try {
-      const hashedPassword = await bcrypt.hash(data.password, 12)
-      
+      // Remove confirmPassword from the data sent to API
+      const { confirmPassword, ...apiData } = data
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...data,
-          password: hashedPassword,
-        }),
+        body: JSON.stringify(apiData),
       })
 
       if (response.ok) {
-        router.push("/sign-in")
+        const result = await response.json()
+        
+        // Show success toast
+        toast({
+          title: "Registration Successful!",
+          description: `Welcome ${data.name}! Your account has been created successfully.`,
+          variant: "success",
+        })
+
+        // Store user data in localStorage for session management
+        localStorage.setItem('user', JSON.stringify(result.user))
+
+        // Show sign-in success toast
+        toast({
+          title: "Welcome!",
+          description: `You have been signed in as ${data.role?.toLowerCase() || 'user'}. Redirecting to your dashboard...`,
+          variant: "success",
+        })
+
+        // Redirect to appropriate dashboard based on role
+        const redirectPath = data.role === "ADMIN" ? "/admin" : "/user/dashboard"
+        router.push(redirectPath)
       } else {
         const error = await response.json()
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Something went wrong during registration.",
+          variant: "destructive",
+        })
         form.setError("root", { message: error.message || "Something went wrong" })
       }
     } catch (error) {
+      toast({
+        title: "Registration Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
       form.setError("root", { message: "Something went wrong" })
     } finally {
       setIsLoading(false)
@@ -61,7 +91,13 @@ export default function SignUpPage() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
+    // Google authentication is temporarily disabled
+    // You can implement custom Google OAuth if needed
+    toast({
+      title: "Google Sign-in Temporarily Unavailable",
+      description: "Please use email and password to sign up.",
+      variant: "destructive",
+    })
   }
 
   return (
@@ -202,12 +238,42 @@ export default function SignUpPage() {
                 )}
               </div>
 
+              {/* Confirm Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    className="pl-10 pr-10 h-12 border-2 border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200"
+                    {...form.register("confirmPassword")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {form.formState.errors.confirmPassword && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {form.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
               {/* Role Field */}
               <div className="space-y-2">
                 <Label htmlFor="role" className="text-sm font-medium text-gray-700">Account Type</Label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-                  <Select onValueChange={(value) => form.setValue("role", value as "ADMIN" | "USER")}>
+                  <Select onValueChange={(value: string) => form.setValue("role", value as "ADMIN" | "USER")}>
                     <SelectTrigger className="pl-10 h-12 border-2 border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200">
                       <SelectValue placeholder="Select your account type" />
                     </SelectTrigger>
@@ -258,7 +324,7 @@ export default function SignUpPage() {
                     Creating account...
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={() => form.handleSubmit(onSubmit)}>
                     Create Account
                     <ArrowRight className="w-4 h-4" />
                   </div>

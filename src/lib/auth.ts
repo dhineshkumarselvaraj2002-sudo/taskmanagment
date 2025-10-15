@@ -11,9 +11,10 @@ export const authOptions = {
   session: { strategy: "jwt" as const },
   debug: process.env.NODE_ENV === "development",
   trustHost: true,
+  allowDangerousEmailAccountLinking: true,
   pages: {
-    signIn: "/signin",
-    signUp: "/signup",
+    signIn: "/sign-in",
+    signUp: "/sign-up",
   },
   providers: [
     Google({
@@ -93,6 +94,10 @@ export const authOptions = {
       if (account?.provider === "credentials") {
         return true
       }
+      return true
+    },
+    async linkAccount({ user, account, profile }) {
+      // Allow linking accounts
       return true
     },
     jwt({ token, user }: { token: any; user: any }) {

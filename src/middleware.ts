@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 
 export async function middleware(request: NextRequest) {
-  const session = await auth()
   const { pathname } = request.nextUrl
+  
+  // Get user from cookie (we'll set this in the API routes)
+  const userCookie = request.cookies.get('user')?.value
+  let user = null
+  
+  if (userCookie) {
+    try {
+      user = JSON.parse(userCookie)
+    } catch (error) {
+      console.error('Error parsing user cookie:', error)
+    }
+  }
 
   // Public routes that don't require authentication
   const publicRoutes = [
     "/",
-    "/signin",
-    "/signup",
+    "/sign-in",
+    "/sign-up",
     "/api/auth",
   ]
 
@@ -23,9 +33,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // If user is not authenticated, redirect to signin
-  if (!session?.user?.id) {
-    const signInUrl = new URL("/signin", request.url)
+  // If user is not authenticated, redirect to sign-in
+  if (!user?.id) {
+    const signInUrl = new URL("/sign-in", request.url)
     signInUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(signInUrl)
   }
@@ -33,8 +43,7 @@ export async function middleware(request: NextRequest) {
   // Admin-only routes
   const adminRoutes = [
     "/admin",
-    "/api/users",
-    "/api/dashboard/stats",
+    "/api/admin",
   ]
 
   const isAdminRoute = adminRoutes.some(route => 
@@ -42,7 +51,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // If it's an admin route and user is not admin, redirect to user dashboard
-  if (isAdminRoute && session.user.role !== "ADMIN") {
+  if (isAdminRoute && user?.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/user/dashboard", request.url))
   }
 
@@ -56,14 +65,14 @@ export async function middleware(request: NextRequest) {
   )
 
   // If it's a user route and user is admin, redirect to admin dashboard
-  if (isUserRoute && session.user.role === "ADMIN") {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url))
+  if (isUserRoute && user?.role === "ADMIN") {
+    return NextResponse.redirect(new URL("/admin", request.url))
   }
 
   // If user is authenticated and on root, redirect to appropriate dashboard
   if (pathname === "/") {
-    const redirectUrl = session.user.role === "ADMIN" 
-      ? "/admin/dashboard" 
+    const redirectUrl = user?.role === "ADMIN" 
+      ? "/admin" 
       : "/user/dashboard"
     return NextResponse.redirect(new URL(redirectUrl, request.url))
   }

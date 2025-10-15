@@ -2,6 +2,14 @@ import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
 import { UserRole } from "@/types"
 
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 12)
+}
+
+export async function verifyPassword(plainPassword: string, hashedPassword: string) {
+  return bcrypt.compare(plainPassword, hashedPassword)
+}
+
 export async function createUser(userData: {
   name: string
   email: string
@@ -20,7 +28,7 @@ export async function createUser(userData: {
   }
 
   // Hash password
-  const hashedPassword = await bcrypt.hash(userData.password, 12)
+  const hashedPassword = await hashPassword(userData.password)
 
   // Create new user
   const newUser = await prisma.user.create({
@@ -57,10 +65,6 @@ export async function findUserById(id: string) {
   })
 }
 
-export async function verifyPassword(plainPassword: string, hashedPassword: string) {
-  return bcrypt.compare(plainPassword, hashedPassword)
-}
-
 export async function updateUser(id: string, data: {
   name?: string
   email?: string
@@ -72,7 +76,7 @@ export async function updateUser(id: string, data: {
   const updateData: any = { ...data }
   
   if (data.password) {
-    updateData.password = await bcrypt.hash(data.password, 12)
+    updateData.password = await hashPassword(data.password)
   }
 
   return await prisma.user.update({
