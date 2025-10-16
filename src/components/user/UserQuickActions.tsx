@@ -2,17 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, List, Calendar, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
-import CreateTaskModal from './CreateTaskModal'
+import { List, Calendar, CheckCircle, Clock } from 'lucide-react'
 
 export default function UserQuickActions() {
   const [loading, setLoading] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const router = useRouter()
-
-  const handleCreateTask = () => {
-    setShowCreateModal(true)
-  }
 
   const handleViewAllTasks = () => {
     setLoading('view')
@@ -37,17 +31,6 @@ export default function UserQuickActions() {
   }
 
   const actions = [
-    {
-      id: 'create',
-      name: 'Create New Task',
-      description: 'Add a new task to your list',
-      icon: Plus,
-      color: 'bg-gradient-to-r from-indigo-500 to-purple-600',
-      hoverColor: 'hover:from-indigo-600 hover:to-purple-700',
-      textColor: 'text-white',
-      onClick: handleCreateTask,
-      loading: false
-    },
     {
       id: 'view',
       name: 'View All Tasks',
@@ -88,7 +71,7 @@ export default function UserQuickActions() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {actions.map((action) => (
             <button
               key={action.id}
@@ -101,17 +84,11 @@ export default function UserQuickActions() {
               }`}
             >
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className={`p-3 rounded-full ${
-                  action.id === 'create' 
-                    ? 'bg-white bg-opacity-20' 
-                    : 'bg-indigo-100'
-                }`}>
+                <div className="p-3 rounded-full bg-indigo-100">
                   {action.loading ? (
                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-current border-t-transparent"></div>
                   ) : (
-                    <action.icon className={`h-6 w-6 ${
-                      action.id === 'create' ? 'text-white' : 'text-indigo-600'
-                    }`} />
+                    <action.icon className="h-6 w-6 text-indigo-600" />
                   )}
                 </div>
                 
@@ -119,9 +96,7 @@ export default function UserQuickActions() {
                   <h4 className="font-semibold text-sm">
                     {action.name}
                   </h4>
-                  <p className={`text-xs mt-1 ${
-                    action.id === 'create' ? 'text-white text-opacity-90' : 'text-gray-500'
-                  }`}>
+                  <p className="text-xs mt-1 text-gray-500">
                     {action.description}
                   </p>
                 </div>
@@ -142,18 +117,12 @@ export default function UserQuickActions() {
             <div>
               <h4 className="text-sm font-medium text-blue-900">Quick Tips</h4>
               <p className="text-xs text-blue-700 mt-1">
-                Use the calendar to see all your deadlines at a glance, or create new tasks to stay organized.
+                Use the calendar to see all your deadlines at a glance and stay organized with your assigned tasks.
               </p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Create Task Modal */}
-      <CreateTaskModal 
-        isOpen={showCreateModal} 
-        onClose={() => setShowCreateModal(false)} 
-      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { TaskFormData } from '@/types'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -14,8 +14,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
         createdBy: { select: { id: true, name: true, email: true } },
@@ -60,7 +61,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -69,6 +70,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const body: Partial<TaskFormData> = await request.json()
     const {
       taskName,
@@ -86,7 +88,7 @@ export async function PUT(
 
     // Get current task to track changes
     const currentTask = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { assignedTo: true }
     })
 
@@ -122,7 +124,7 @@ export async function PUT(
     }
 
     const task = await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
@@ -193,7 +195,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -202,8 +204,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const task = await prisma.task.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { assignedTo: true }
     })
 
@@ -212,7 +215,7 @@ export async function DELETE(
     }
 
     await prisma.task.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     // Notify assigned user about task deletion

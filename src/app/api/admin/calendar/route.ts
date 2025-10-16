@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { CalendarEvent } from '@/types'
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,26 +28,10 @@ export async function GET(request: NextRequest) {
 
     const where: any = {
       ...(start && end && {
-        OR: [
-          {
-            startDate: {
-              gte: new Date(start),
-              lte: new Date(end)
-            }
-          },
-          {
-            endDate: {
-              gte: new Date(start),
-              lte: new Date(end)
-            }
-          },
-          {
-            AND: [
-              { startDate: { lte: new Date(start) } },
-              { endDate: { gte: new Date(end) } }
-            ]
-          }
-        ]
+        endDate: {
+          gte: new Date(start),
+          lte: new Date(end)
+        }
       }),
       ...(assignedTo && { assignedToId: assignedTo }),
       ...(status.length > 0 && { status: { in: status } }),
@@ -61,28 +44,48 @@ export async function GET(request: NextRequest) {
         assignedTo: { select: { id: true, name: true, email: true } },
         createdBy: { select: { id: true, name: true, email: true } }
       },
-      orderBy: { startDate: 'asc' }
+      orderBy: { endDate: 'asc' }
     })
 
-    const events: CalendarEvent[] = tasks.map(task => ({
-      id: task.id,
-      title: task.taskName,
-      start: task.startDate,
-      end: task.endDate,
-      resource: {
-        task: {
-          ...task,
-          assignedTo: task.assignedTo,
-          createdBy: task.createdBy
-        }
+    // Group tasks by deadline date
+    const deadlineMap = new Map<string, any[]>()
+    
+    tasks.forEach(task => {
+      const taskDate = new Date(task.endDate)
+      const year = taskDate.getFullYear()
+      const month = String(taskDate.getMonth() + 1).padStart(2, '0')
+      const day = String(taskDate.getDate()).padStart(2, '0')
+      const deadlineDate = `${year}-${month}-${day}` // YYYY-MM-DD format
+      
+      if (!deadlineMap.has(deadlineDate)) {
+        deadlineMap.set(deadlineDate, [])
       }
+      
+      deadlineMap.get(deadlineDate)!.push({
+        id: task.id,
+        taskName: task.taskName,
+        status: task.status,
+        priority: task.priority,
+        progress: task.progress,
+        assignedTo: task.assignedTo,
+        endDate: task.endDate
+      })
+    })
+
+    // Convert map to array of date objects
+    const deadlineData = Array.from(deadlineMap.entries()).map(([date, tasks]) => ({
+      date,
+      tasks
     }))
 
-    return NextResponse.json({ success: true, data: events })
+    console.log('Tasks found:', tasks.length)
+    console.log('Deadline data:', deadlineData)
+
+    return NextResponse.json({ success: true, data: deadlineData })
   } catch (error) {
-    console.error('Get calendar events error:', error)
+    console.error('Get calendar deadlines error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch calendar events' },
+      { error: 'Failed to fetch calendar deadlines' },
       { status: 500 }
     )
   }

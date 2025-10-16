@@ -16,7 +16,9 @@ export default function UpcomingDeadlines() {
         const response = await fetch('/api/admin/calendar?start=' + new Date().toISOString() + '&end=' + addDays(new Date(), 7).toISOString())
         const data = await response.json()
         if (data.success) {
-          setTasks(data.data.map((event: any) => event.resource.task))
+          // Flatten the deadline data to get all tasks
+          const allTasks = data.data.flatMap((deadlineGroup: any) => deadlineGroup.tasks)
+          setTasks(allTasks)
         }
       } catch (error) {
         console.error('Failed to fetch upcoming deadlines:', error)

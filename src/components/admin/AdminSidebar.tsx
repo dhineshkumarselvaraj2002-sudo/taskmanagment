@@ -19,7 +19,7 @@ const navigation = [
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Tasks', href: '/admin/tasks', icon: CheckSquare },
   { name: 'Calendar', href: '/admin/calendar', icon: Calendar },
-  { name: 'Notifications', href: '/admin/notifications', icon: Bell },
+  // { name: 'Notifications', href: '/admin/notifications', icon: Bell },
   // TODO: Add these pages in future updates
   // { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   // { name: 'Reports', href: '/admin/reports', icon: FileText },

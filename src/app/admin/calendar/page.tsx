@@ -30,7 +30,7 @@ export default async function CalendarPage() {
                 Calendar View
               </h1>
               <p className="mt-2 text-gray-600">
-                View and manage all tasks on the calendar with enhanced filtering and insights
+                View task deadlines by hovering over calendar dates to see user assignments and task status
               </p>
             </div>
             <div className="flex items-center space-x-4">
@@ -145,9 +145,9 @@ export default async function CalendarPage() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Task Calendar</h3>
+                <h3 className="text-lg font-medium text-gray-900">Deadline Calendar</h3>
                 <p className="text-sm text-gray-500">
-                  Hover over events to see details, click for full information
+                  Hover over dates with deadlines to see task details, user assignments, and status
                 </p>
               </div>
               <div className="flex items-center space-x-4">
@@ -198,10 +198,10 @@ export default async function CalendarPage() {
               <h3 className="text-sm font-medium text-blue-800">Calendar Tips</h3>
               <div className="mt-2 text-sm text-blue-700">
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Hover over any task event to see a quick preview with user, deadline, and priority</li>
-                  <li>Click on events to open detailed task information</li>
+                  <li>Hover over any date with deadlines to see task details, assigned users, and status</li>
+                  <li>Dates with deadlines are highlighted with a subtle background color</li>
                   <li>Use the filters above the calendar to view specific users, statuses, or priorities</li>
-                  <li>Color coding: Red (Critical), Orange (High), Yellow (Medium), Green (Low)</li>
+                  <li>Priority color coding: Red (Critical), Orange (High), Yellow (Medium), Green (Low)</li>
                   <li>Switch between Month, Week, and Day views using the calendar controls</li>
                 </ul>
               </div>

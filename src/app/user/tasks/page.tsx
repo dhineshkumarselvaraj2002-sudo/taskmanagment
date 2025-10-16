@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Filter, Search, Calendar, Clock, User, Eye, Edit, Trash2, CheckCircle, AlertCircle, XCircle, Play } from 'lucide-react'
-import CreateTaskModal from '@/components/user/CreateTaskModal'
-import { ExtendedTask } from '@/types'
+import { Filter, Search, Calendar, Clock, User, Eye, Edit, Trash2, CheckCircle, AlertCircle, XCircle, Play } from 'lucide-react'
+import TaskDetailModal from '@/components/user/TaskDetailModal'
+import { ExtendedTask, TaskStatus } from '@/types'
 
 export default function UserTasksPage() {
   // State for filtering and search
@@ -20,7 +20,8 @@ export default function UserTasksPage() {
 
   const [tasks, setTasks] = useState<ExtendedTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<ExtendedTask | null>(null)
 
   const fetchTasks = async () => {
     try {
@@ -40,6 +41,19 @@ export default function UserTasksPage() {
   useEffect(() => {
     fetchTasks()
   }, [])
+
+  const handleViewTask = (task: ExtendedTask) => {
+    setSelectedTask(task)
+    setShowDetailModal(true)
+  }
+
+  const handleStatusUpdate = (taskId: string, newStatus: TaskStatus) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    )
+  }
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -126,13 +140,6 @@ export default function UserTasksPage() {
           <Button variant="outline" className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
             Filter
-          </Button>
-          <Button 
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Task
           </Button>
         </div>
       </div>
@@ -290,14 +297,20 @@ export default function UserTasksPage() {
                       {/* Task Header */}
                       <div className="flex items-center gap-3 mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">{task.taskName}</h3>
-                        <Badge className={`${getStatusColor(task.status)} border flex items-center gap-1`}>
+                        <Badge className={`${getStatusColor(task.status)} border flex items-center gap-1 px-3 py-1`}>
                           {getStatusIcon(task.status)}
                           {task.status.replace('_', ' ')}
                         </Badge>
-                        <Badge className={`${getPriorityColor(task.priority)} border flex items-center gap-1`}>
+                        <Badge className={`${getPriorityColor(task.priority)} border flex items-center gap-1 px-3 py-1`}>
                           {getPriorityIcon(task.priority)}
                           {task.priority}
                         </Badge>
+                        {new Date(task.endDate) < new Date() && task.status !== 'COMPLETED' && (
+                          <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1 px-3 py-1">
+                            <AlertCircle className="w-4 h-4" />
+                            Overdue
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Task Description */}
@@ -337,21 +350,39 @@ export default function UserTasksPage() {
                           <span>{new Date(task.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
+
+                      {/* Status Summary */}
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700">Current Status:</span>
+                            <Badge className={`${getStatusColor(task.status)} border flex items-center gap-1`}>
+                              {getStatusIcon(task.status)}
+                              {task.status.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {task.status === 'COMPLETED' ? '✅ Task completed' : 
+                             task.status === 'IN_PROGRESS' ? '🔄 Work in progress' :
+                             task.status === 'TODO' ? '📋 Ready to start' :
+                             task.status === 'BLOCKED' ? '🚫 Blocked' :
+                             task.status === 'IN_REVIEW' ? '👀 Under review' :
+                             '❓ Unknown status'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 ml-4">
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-1"
+                        onClick={() => handleViewTask(task)}
+                      >
                         <Eye className="w-4 h-4" />
                         View
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1 text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                        Delete
                       </Button>
                     </div>
                   </div>
@@ -363,13 +394,16 @@ export default function UserTasksPage() {
       </Card>
 
 
-      {/* Create Task Modal */}
-      <CreateTaskModal 
-        isOpen={showCreateModal} 
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        isOpen={showDetailModal}
         onClose={() => {
-          setShowCreateModal(false)
-          fetchTasks() // Refresh tasks after creating
-        }} 
+          setShowDetailModal(false)
+          setSelectedTask(null)
+        }}
+        task={selectedTask}
+        onStatusUpdate={handleStatusUpdate}
       />
     </div>
   )

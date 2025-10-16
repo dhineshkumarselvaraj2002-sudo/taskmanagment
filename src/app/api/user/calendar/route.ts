@@ -41,33 +41,38 @@ export async function GET(request: NextRequest) {
       orderBy: { startDate: 'asc' }
     })
 
-    // Convert tasks to calendar events
-    const events = tasks.map(task => ({
-      id: task.id,
-      title: task.taskName,
-      description: task.taskDescription,
-      start: new Date(task.startDate),
-      end: new Date(task.endDate),
-      type: 'task',
-      status: task.status,
-      priority: task.priority,
-      resource: {
-        task: {
-          id: task.id,
-          taskName: task.taskName,
-          taskDescription: task.taskDescription,
-          status: task.status,
-          priority: task.priority,
-          startDate: task.startDate,
-          endDate: task.endDate,
-          createdBy: task.createdBy,
-          tags: task.tags,
-          checklistItems: task.checklistItems
-        }
+    // Group tasks by date for calendar display
+    const deadlineData: { [key: string]: any[] } = {}
+    
+    tasks.forEach(task => {
+      const taskDate = new Date(task.endDate).toISOString().split('T')[0]
+      
+      if (!deadlineData[taskDate]) {
+        deadlineData[taskDate] = []
       }
+      
+      deadlineData[taskDate].push({
+        id: task.id,
+        taskName: task.taskName,
+        status: task.status,
+        priority: task.priority,
+        progress: task.progress || 0,
+        assignedTo: {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email
+        },
+        endDate: task.endDate
+      })
+    })
+    
+    // Convert to array format expected by calendar
+    const calendarData = Object.entries(deadlineData).map(([date, tasks]) => ({
+      date,
+      tasks
     }))
 
-    return NextResponse.json({ success: true, data: events })
+    return NextResponse.json({ success: true, data: calendarData })
   } catch (error) {
     console.error('Get user calendar error:', error)
     return NextResponse.json(
