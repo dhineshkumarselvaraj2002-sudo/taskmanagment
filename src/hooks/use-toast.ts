@@ -3,8 +3,8 @@
 import * as React from "react"
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 2000 // 2 seconds
+const TOAST_LIMIT = 3
+const TOAST_REMOVE_DELAY = 3000 // 3 seconds
 
 type ToasterToast = ToastProps & {
   id: string
@@ -151,13 +151,14 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+      variant: props.variant || "success",
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
     },
   })
 
-  // Auto-dismiss after 2 seconds
+  // Auto-dismiss after 3 seconds
   setTimeout(() => {
     dismiss()
   }, TOAST_REMOVE_DELAY)

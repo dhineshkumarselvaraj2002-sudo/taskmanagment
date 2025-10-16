@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: UserFormData = await request.json()
-    const { name, email, password, role, isActive, emailNotifications } = body
+    const { name, email, password } = body
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Determine role based on email
+    const role = email === "dineshnayak50478@gmail.com" ? "ADMIN" : "USER"
+
     // Hash password if provided
     const hashedPassword = password ? await bcrypt.hash(password, 12) : null
 
@@ -162,8 +165,8 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         role,
-        isActive,
-        emailNotifications
+        isActive: true,
+        emailNotifications: true
       },
       include: {
         _count: {

@@ -3,27 +3,12 @@
 import { useState } from 'react'
 import UsersTable from '@/components/admin/UsersTable'
 import CreateUserModal from '@/components/admin/CreateUserModal'
-import ModernFilters from '@/components/admin/ModernFilters'
+import { Users } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export default function UsersPage() {
+  const { toast } = useToast()
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [searchValue, setSearchValue] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [dateRangeFilter, setDateRangeFilter] = useState('all')
-
-  const roleOptions = [
-    { value: 'all', label: 'All Roles' },
-    { value: 'ADMIN', label: 'Admin' },
-    { value: 'USER', label: 'User' }
-  ]
-
-  const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'pending', label: 'Pending' }
-  ]
 
   const handleCreateUserClose = () => {
     setShowCreateModal(false)
@@ -31,81 +16,49 @@ export default function UsersPage() {
 
   const handleCreateUserSave = () => {
     setShowCreateModal(false)
+    
+    // Show success toast notification
+    toast({
+      title: "User Created Successfully",
+      description: "New user has been created and added to the system.",
+      variant: "default",
+      className: "bg-green-50 border-green-200 text-green-800",
+    })
+    
     // Reload to show the new user
     window.location.reload()
   }
 
-  const handleClearFilters = () => {
-    setSearchValue('')
-    setRoleFilter('all')
-    setStatusFilter('all')
-    setDateRangeFilter('all')
-  }
-
-  const handleApplyFilters = () => {
-    // Here you would typically trigger a data fetch with the current filter values
-    console.log('Applying filters:', {
-      search: searchValue,
-      role: roleFilter,
-      status: statusFilter,
-      dateRange: dateRangeFilter
-    })
-    // You can add your data fetching logic here
-  }
-
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-              <p className="mt-2 text-gray-600">
-                Manage user accounts and permissions
-              </p>
-            </div>
-            <div>
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Create User
-              </button>
-            </div>
-          </div>
+    <div className="p-6 bg-gray-50 dark:bg-gray-900">
+      <div className="w-full">
+        <div className="space-y-6">
+          
 
-          {/* Modern Filters */}
-          {/* <ModernFilters
-            searchPlaceholder="Search users by name, email, or role..."
-            searchValue={searchValue}
-            onSearchChange={setSearchValue}
-            filters={{
-              status: {
-                options: statusOptions,
-                value: statusFilter,
-                onChange: setStatusFilter
-              },
-              user: {
-                options: roleOptions,
-                value: roleFilter,
-                onChange: setRoleFilter
-              },
-              dateRange: {
-                value: dateRangeFilter,
-                onChange: setDateRangeFilter
-              }
-            }}
-            onClearFilters={handleClearFilters}
-            onApplyFilters={handleApplyFilters}
-          /> */}
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Users Table</h3>
-            <UsersTable />
+          {/* Users Table */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="admin-card-title">Users Table</h3>
+                  <p className="admin-card-description">
+                    View and manage all user accounts in the system
+                  </p>
+                </div>
+                <div>
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 admin-button-primary"
+                  >
+                    Create User
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <UsersTable />
+            </div>
           </div>
         </div>
       </div>

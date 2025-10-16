@@ -5,111 +5,70 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
 import { 
   LayoutDashboard, 
-  Users, 
   CheckSquare, 
   Calendar, 
   Bell, 
   Settings,
-  BarChart3,
-  FileText,
+  User as UserIcon,
   ChevronRight,
   ChevronLeft,
   X,
-  User as UserIcon,
-  Mail,
-  Shield,
-  Clock,
-  Type,
-  Minus,
-  Plus,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Maximize2,
   Minimize2,
-  List
+  Plus,
+  Minus,
+  Type
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// TailAdmin-style Sidebar Content Dictionary
+// User Sidebar Content Dictionary
 const sidebarContent = {
-  // Brand Information (TailAdmin style)
+  // Brand Information
   brand: {
-    logo: 'TZ',
-    title: 'TaskZen',
+    logo: 'UZ',
+    title: 'UserZone',
   },
   
-  // Navigation Sections (TailAdmin structure)
+  // Navigation Sections
   navigation: {
     menu: [
       { 
         name: 'Dashboard', 
-        href: '/admin', 
+        href: '/user/dashboard', 
         icon: LayoutDashboard,
         description: 'Overview and analytics',
         badge: null,
         hasSubmenu: false
       },
       { 
-        name: 'Calendar', 
-        href: '/admin/calendar', 
-        icon: Calendar,
-        description: 'Schedule and events',
-        badge: null,
-        hasSubmenu: false
-      },
-      {
-        name:'Users',
-        href: '/admin/users',
-        icon: Users,
-        description: 'User management',
-        badge: null,
-        hasSubmenu: false
-
-      },
-      {
-        name: 'Tasks',
-        href: '/admin/tasks',
-        icon: List,
+        name: 'My Tasks', 
+        href: '/user/tasks', 
+        icon: CheckSquare,
         description: 'Task management',
         badge: null,
         hasSubmenu: false
       },
       { 
-        name: 'User Profile', 
-        href: '/admin/profile', 
+        name: 'Calendar', 
+        href: '/user/calendar', 
+        icon: Calendar,
+        description: 'Schedule and events',
+        badge: null,
+        hasSubmenu: false
+      },
+      { 
+        name: 'Profile', 
+        href: '/user/profile', 
         icon: UserIcon,
         description: 'User profile management',
         badge: null,
         hasSubmenu: false
       }
     ],
-    others: [
-      { 
-        name: 'Charts', 
-        href: '/admin/charts', 
-        icon: BarChart3,
-        description: 'Analytics and charts',
-        badge: null,
-        hasSubmenu: true
-      },
-      { 
-        name: 'UI Elements', 
-        href: '/admin/ui-elements', 
-        icon: Settings,
-        description: 'UI components',
-        badge: null,
-        hasSubmenu: true
-      },
-      { 
-        name: 'Authentication', 
-        href: '/admin/auth', 
-        icon: Shield,
-        description: 'Authentication pages',
-        badge: null,
-        hasSubmenu: true
-      }
-    ]
+    others: []
   },
   
   // Sidebar Modes
@@ -167,39 +126,9 @@ const sidebarContent = {
             value: 'name'
           },
           {
-            icon: Mail,
-            label: 'Email Address',
-            value: 'email'
-          },
-          {
-            icon: Shield,
+            icon: Settings,
             label: 'Role',
             value: 'role'
-          },
-          {
-            icon: Clock,
-            label: 'Last Active',
-            value: 'lastActive'
-          }
-        ]
-      },
-      actions: {
-        title: 'Quick Actions',
-        items: [
-          {
-            icon: Settings,
-            label: 'Account Settings',
-            action: 'settings'
-          },
-          {
-            icon: Shield,
-            label: 'Security Settings',
-            action: 'security'
-          },
-          {
-            icon: Bell,
-            label: 'Notifications',
-            action: 'notifications'
           }
         ]
       }
@@ -211,8 +140,8 @@ const sidebarContent = {
     loading: 'Loading...',
     notAvailable: 'Not available',
     lastActive: 'Just now',
-    defaultEmail: 'admin@taskmanager.com',
-    defaultName: 'Admin User'
+    defaultEmail: 'user@taskmanager.com',
+    defaultName: 'User'
   },
   
   // Tooltips and Help Text
@@ -225,9 +154,6 @@ const sidebarContent = {
   }
 }
 
-// Legacy navigation for backward compatibility
-const navigation = sidebarContent.navigation.menu
-
 interface User {
   id: string
   name: string
@@ -238,7 +164,7 @@ interface User {
 
 type SidebarMode = 'expanded' | 'collapsed' | 'floating' | 'overlay'
 
-export default function AdminSidebar() {
+export default function UserSidebar() {
   const pathname = usePathname()
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('collapsed')
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -260,12 +186,12 @@ export default function AdminSidebar() {
     }
 
     // Get saved preferences
-    const savedFontSize = localStorage.getItem('fontSize') as 'small' | 'medium' | 'large' | null
+    const savedFontSize = localStorage.getItem('userFontSize') as 'small' | 'medium' | 'large' | null
     if (savedFontSize) {
       setFontSize(savedFontSize)
     }
 
-    const savedSidebarMode = localStorage.getItem('sidebarMode') as SidebarMode | null
+    const savedSidebarMode = localStorage.getItem('userSidebarMode') as SidebarMode | null
     if (savedSidebarMode) {
       setSidebarMode(savedSidebarMode)
     }
@@ -286,11 +212,11 @@ export default function AdminSidebar() {
 
     handleResize()
     window.addEventListener('resize', handleResize)
-    window.addEventListener('sidebarModeChange', handleSidebarModeChange as EventListener)
+    window.addEventListener('userSidebarModeChange', handleSidebarModeChange as EventListener)
     
     return () => {
       window.removeEventListener('resize', handleResize)
-      window.removeEventListener('sidebarModeChange', handleSidebarModeChange as EventListener)
+      window.removeEventListener('userSidebarModeChange', handleSidebarModeChange as EventListener)
     }
   }, [])
 
@@ -306,12 +232,12 @@ export default function AdminSidebar() {
     const newMode = modes[nextIndex]
     
     setSidebarMode(newMode)
-    localStorage.setItem('sidebarMode', newMode)
+    localStorage.setItem('userSidebarMode', newMode)
   }, [sidebarMode])
 
   const setSidebarModeDirect = useCallback((mode: SidebarMode) => {
     setSidebarMode(mode)
-    localStorage.setItem('sidebarMode', mode)
+    localStorage.setItem('userSidebarMode', mode)
   }, [])
 
   const toggleMobileSidebar = () => {
@@ -328,7 +254,7 @@ export default function AdminSidebar() {
     if (sidebarMode === 'collapsed') {
       setIsExpanded(true)
       // Trigger event to update main content width
-      window.dispatchEvent(new CustomEvent('sidebarHoverExpand', { detail: true }))
+      window.dispatchEvent(new CustomEvent('userSidebarHoverExpand', { detail: true }))
     }
   }
 
@@ -337,13 +263,13 @@ export default function AdminSidebar() {
     if (sidebarMode === 'collapsed') {
       setIsExpanded(false)
       // Trigger event to update main content width
-      window.dispatchEvent(new CustomEvent('sidebarHoverExpand', { detail: false }))
+      window.dispatchEvent(new CustomEvent('userSidebarHoverExpand', { detail: false }))
     }
   }
 
   const handleFontSizeChange = (size: 'small' | 'medium' | 'large') => {
     setFontSize(size)
-    localStorage.setItem('fontSize', size)
+    localStorage.setItem('userFontSize', size)
   }
 
   const getFontSizeClasses = () => {
@@ -420,14 +346,14 @@ export default function AdminSidebar() {
          onMouseLeave={handleMouseLeave}
        >
         <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-800 shadow-lg border-r border-gray-300 dark:border-gray-700">
-          {/* Header - TailAdmin Style */}
+          {/* Header */}
            <div className={cn(
              "flex shrink-0 items-center transition-all duration-300",
              (sidebarMode === 'collapsed' && !isExpanded) ? "h-16 justify-center px-4" : "h-16 px-6"
            )}>
              {!(sidebarMode === 'collapsed' && !isExpanded) && (
               <div className="flex items-center space-x-3 min-w-0 flex-1">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-lg flex items-center justify-center shadow-sm shrink-0">
                   <span className="text-white font-bold text-xs">{sidebarContent.brand.logo}</span>
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
@@ -439,24 +365,10 @@ export default function AdminSidebar() {
             )}
              
              {(sidebarMode === 'collapsed' && !isExpanded) && (
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-white font-bold text-xs">{sidebarContent.brand.logo}</span>
               </div>
             )}
-
-             {/* TailAdmin-style Toggle Button */}
-             <div className={cn(
-               "flex items-center",
-               (sidebarMode === 'collapsed' && !isExpanded) && "hidden"
-             )}>
-              {/* <button
-                onClick={cycleSidebarMode}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                title="Toggle sidebar"
-              >
-                <ChevronLeft className="h-4 w-4 text-gray-600" />
-              </button> */}
-            </div>
 
             {/* Mobile Close Button */}
             <div className="lg:hidden">
@@ -470,7 +382,7 @@ export default function AdminSidebar() {
             </div>
           </div>
 
-          {/* Navigation - TailAdmin Style */}
+          {/* Navigation */}
            <nav className={cn(
              "flex flex-1 flex-col transition-all duration-300",
              (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
@@ -487,7 +399,7 @@ export default function AdminSidebar() {
                         href={item.href}
                         className={cn(
                           isActive
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-gray-400 dark:border-gray-500'
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
                             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
                           'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
                           (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3' : 'px-3 py-2.5'
@@ -496,7 +408,7 @@ export default function AdminSidebar() {
                       >
                         <item.icon
                           className={cn(
-                            isActive ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
+                            isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400',
                             'h-5 w-5 shrink-0 transition-colors duration-200'
                           )}
                           aria-hidden="true"
@@ -517,18 +429,56 @@ export default function AdminSidebar() {
             </div>
 
             {/* OTHERS Section */}
-           
+            <div className="mb-6">
+              <ul role="list" className="space-y-1">
+                {sidebarContent.navigation.others.map((item) => {
+                  const isActive = pathname === item.href
+                  
+                  return (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          isActive
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
+                          'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
+                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3' : 'px-3 py-2.5'
+                        )}
+                        title={(sidebarMode === 'collapsed' && !isExpanded) ? item.name : undefined}
+                      >
+                        <item.icon
+                          className={cn(
+                            isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400',
+                            'h-5 w-5 shrink-0 transition-colors duration-200'
+                          )}
+                          aria-hidden="true"
+                        />
+                        {!(sidebarMode === 'collapsed' && !isExpanded) && (
+                          <div className="flex items-center justify-between flex-1 min-w-0">
+                            <span className={`truncate ${fontClasses.nav}`}>{item.name}</span>
+                            {item.hasSubmenu && (
+                              <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            )}
+                          </div>
+                        )}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
           </nav>
           
-          {/* TailAdmin Bottom Section */}
+          {/* Bottom Section */}
           <div className={cn(
             "mt-auto transition-all duration-300",
             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
           )}>
             {!(sidebarMode === 'collapsed' && !isExpanded) && (
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
-                <p className={`${fontClasses.nav} font-bold text-gray-900 dark:text-gray-100`}>
-                  #1 Tailwind CSS Dashboard
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                <p className={`${fontClasses.nav} font-bold text-green-800 dark:text-green-200`}>
+                  #1 User Dashboard
                 </p>
               </div>
             )}

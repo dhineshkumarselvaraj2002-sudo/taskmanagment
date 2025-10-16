@@ -248,10 +248,19 @@ export default function TasksListView({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-6">
                         <div className="flex items-center space-x-2">
-                          <UserIcon className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            {task.assignedTo?.name || 'Unassigned'}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border border-indigo-200">
+                              <UserIcon className="h-3 w-3 text-indigo-600" />
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {task.assignedTo?.name || 'Unassigned'}
+                              </span>
+                              {task.assignedTo && (
+                                <div className="text-xs text-indigo-600">Assigned</div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <CalendarIcon className="h-4 w-4 text-gray-400" />

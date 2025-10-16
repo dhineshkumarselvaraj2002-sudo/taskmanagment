@@ -7,15 +7,19 @@ export async function GET(request: NextRequest) {
     const userCookie = request.cookies.get('user')?.value
     let currentUser = null
     
+    console.log('User notifications API - userCookie:', userCookie)
+    
     if (userCookie) {
       try {
         currentUser = JSON.parse(userCookie)
+        console.log('User notifications API - currentUser:', currentUser)
       } catch (error) {
         console.error('Error parsing user cookie:', error)
       }
     }
     
     if (!currentUser) {
+      console.log('User notifications API - No current user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -33,6 +37,8 @@ export async function GET(request: NextRequest) {
       ...(type.length > 0 && { type: { in: type } })
     }
 
+    console.log('User notifications API - where clause:', where)
+    
     const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
@@ -59,6 +65,9 @@ export async function GET(request: NextRequest) {
         } 
       })
     ])
+    
+    console.log('User notifications API - notifications found:', notifications.length)
+    console.log('User notifications API - unreadCount:', unreadCount)
 
     return NextResponse.json({
       success: true,

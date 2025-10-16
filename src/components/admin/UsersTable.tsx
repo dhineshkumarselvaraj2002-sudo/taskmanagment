@@ -17,7 +17,6 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import EditUserModal from './EditUserModal'
-import DeleteUserModal from './DeleteUserModal'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/use-debounce'
 
@@ -32,7 +31,6 @@ export default function UsersTable() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null)
-  const [deletingUser, setDeletingUser] = useState<ExtendedUser | null>(null)
   
   // Filter panel state
   const [showFilters, setShowFilters] = useState(false)
@@ -51,7 +49,7 @@ export default function UsersTable() {
       setLoading(true)
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '10',
+        limit: '5',
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(role && { role }),
         ...(status && { status }),
@@ -63,7 +61,14 @@ export default function UsersTable() {
       
       if (data.success) {
         setUsers(data.data)
-        setTotalPages(data.pagination.totalPages)
+        setTotalPages(data.pagination?.totalPages || 1)
+        console.log('UsersTable: Fetched users data:', {
+          users: data.data?.length,
+          totalPages: data.pagination?.totalPages,
+          currentPage: page
+        })
+      } else {
+        console.error('UsersTable: API error:', data.error)
       }
     } catch (error) {
       console.error('Failed to fetch users:', error)
@@ -111,6 +116,10 @@ export default function UsersTable() {
     setTempStatus('')
     setTempDateRange('')
     setPage(1)
+    // Force a refetch after clearing filters
+    setTimeout(() => {
+      fetchUsers()
+    }, 100)
   }
 
   const clearTempFilters = () => {
@@ -150,12 +159,10 @@ export default function UsersTable() {
       if (response.ok) {
         const deletedUser = users.find(user => user.id === userId)
         setUsers(users.filter(user => user.id !== userId))
-        setDeletingUser(null)
         
         toast({
           title: "User Deleted Successfully",
           description: `${deletedUser?.name} has been removed from the system.`,
-          variant: "default",
         })
       } else {
         toast({
@@ -176,13 +183,13 @@ export default function UsersTable() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"></div>
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                <div key={i} className="h-16 bg-gray-200 dark:bg-gray-600 rounded"></div>
               ))}
             </div>
           </div>
@@ -376,7 +383,7 @@ export default function UsersTable() {
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => setDeletingUser(user)}
+                          onClick={() => handleDelete(user.id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <TrashIcon className="h-4 w-4" />
@@ -390,29 +397,40 @@ export default function UsersTable() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Page {page} of {totalPages}
-              </div>
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              Showing {((page - 1) * 5) + 1}-{Math.min(page * 5, users.length + ((page - 1) * 5))} of {users.length + ((page - 1) * 5)} users
+              {totalPages > 1 && (
+                <span className="ml-2 text-gray-500 dark:text-gray-400">
+                  (Page {page} of {totalPages})
+                </span>
+              )}
+              {/* Debug info - remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-400 mt-1">
+                  Debug: totalPages={totalPages}, page={page}, users.length={users.length}
+                </div>
+              )}
+            </div>
+            {(totalPages > 1 || users.length === 5) && (
               <div className="flex space-x-2">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+                  onClick={() => setPage(Math.min(totalPages || 1, page + 1))}
+                  disabled={page === (totalPages || 1)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -424,17 +442,6 @@ export default function UsersTable() {
           onSave={() => {
             setEditingUser(null)
             fetchUsers()
-          }}
-        />
-      )}
-
-      {deletingUser && (
-        <DeleteUserModal
-          user={deletingUser}
-          onClose={() => setDeletingUser(null)}
-          onConfirm={() => {
-            handleDelete(deletingUser.id)
-            setDeletingUser(null)
           }}
         />
       )}

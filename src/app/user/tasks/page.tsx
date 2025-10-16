@@ -17,6 +17,11 @@ export default function UserTasksPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [priorityFilter, setPriorityFilter] = useState('ALL')
   const [sortBy, setSortBy] = useState('dueDate')
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Advanced filter states
+  const [dateRange, setDateRange] = useState('ALL')
+  const [overdueOnly, setOverdueOnly] = useState(false)
 
   const [tasks, setTasks] = useState<ExtendedTask[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +70,34 @@ export default function UserTasksPage() {
       const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
       const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter
       
-      return matchesSearch && matchesStatus && matchesPriority
+      // Date range filter
+      const taskDate = new Date(task.endDate)
+      const now = new Date()
+      let matchesDateRange = true
+      
+      if (dateRange !== 'ALL') {
+        switch (dateRange) {
+          case 'TODAY':
+            matchesDateRange = taskDate.toDateString() === now.toDateString()
+            break
+          case 'THIS_WEEK':
+            const weekStart = new Date(now.setDate(now.getDate() - now.getDay()))
+            const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000)
+            matchesDateRange = taskDate >= weekStart && taskDate <= weekEnd
+            break
+          case 'THIS_MONTH':
+            matchesDateRange = taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear()
+            break
+          case 'OVERDUE':
+            matchesDateRange = taskDate < now && task.status !== 'COMPLETED'
+            break
+        }
+      }
+      
+      // Overdue only filter
+      const matchesOverdue = !overdueOnly || (taskDate < now && task.status !== 'COMPLETED')
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesDateRange && matchesOverdue
     })
 
     // Sort tasks
@@ -86,7 +118,7 @@ export default function UserTasksPage() {
     })
 
     return filtered
-  }, [tasks, searchTerm, statusFilter, priorityFilter, sortBy])
+  }, [tasks, searchTerm, statusFilter, priorityFilter, sortBy, dateRange, overdueOnly])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -137,9 +169,18 @@ export default function UserTasksPage() {
           <p className="text-gray-600">Manage and track your assigned tasks</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
             <Filter className="w-4 h-4" />
-            Filter
+            Advanced Filters
+            {(statusFilter !== 'ALL' || priorityFilter !== 'ALL' || dateRange !== 'ALL' || overdueOnly) && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
+                {[statusFilter !== 'ALL', priorityFilter !== 'ALL', dateRange !== 'ALL', overdueOnly].filter(Boolean).length}
+              </span>
+            )}
           </Button>
         </div>
       </div>
@@ -211,7 +252,85 @@ export default function UserTasksPage() {
         </Card>
       </div>
 
-    
+      {/* Advanced Filter Panel */}
+      {showFilters && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Advanced Filters</CardTitle>
+            <CardDescription>Refine your task list with advanced filtering options</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Date Range Filter */}
+              <div className="space-y-2">
+                <Label htmlFor="dateRange">Date Range</Label>
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Time</SelectItem>
+                    <SelectItem value="TODAY">Today</SelectItem>
+                    <SelectItem value="THIS_WEEK">This Week</SelectItem>
+                    <SelectItem value="THIS_MONTH">This Month</SelectItem>
+                    <SelectItem value="OVERDUE">Overdue Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Overdue Only Toggle */}
+              <div className="space-y-2">
+                <Label htmlFor="overdueOnly">Show Only Overdue</Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="overdueOnly"
+                    checked={overdueOnly}
+                    onChange={(e) => setOverdueOnly(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="overdueOnly" className="text-sm text-gray-600">
+                    Show only overdue tasks
+                  </Label>
+                </div>
+              </div>
+
+              {/* Clear All Filters */}
+              <div className="space-y-2">
+                <Label>Actions</Label>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('')
+                    setStatusFilter('ALL')
+                    setPriorityFilter('ALL')
+                    setDateRange('ALL')
+                    setOverdueOnly(false)
+                    setSortBy('dueDate')
+                  }}
+                  className="w-full flex items-center gap-2"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Clear All Filters
+                </Button>
+              </div>
+
+              {/* Filter Summary */}
+              <div className="space-y-2">
+                <Label>Active Filters</Label>
+                <div className="text-sm text-gray-600">
+                  {[statusFilter !== 'ALL' && `Status: ${statusFilter}`,
+                    priorityFilter !== 'ALL' && `Priority: ${priorityFilter}`,
+                    dateRange !== 'ALL' && `Date: ${dateRange}`,
+                    overdueOnly && 'Overdue Only'
+                  ].filter(Boolean).join(', ') || 'No filters applied'}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Enhanced Search and Filters */}
       <Card>
         <CardHeader>
@@ -273,6 +392,23 @@ export default function UserTasksPage() {
                   <SelectItem value="title">Title</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Clear Filters Button */}
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm('')
+                  setStatusFilter('ALL')
+                  setPriorityFilter('ALL')
+                  setDateRange('ALL')
+                  setOverdueOnly(false)
+                  setSortBy('dueDate')
+                }}
+                className="flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                Clear
+              </Button>
             </div>
           </div>
         </CardHeader>

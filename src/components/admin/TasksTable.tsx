@@ -17,19 +17,21 @@ import {
   Sparkles
 } from 'lucide-react'
 import EditTaskModal from './EditTaskModal'
-import DeleteTaskModal from './DeleteTaskModal'
 import { useTasks, useDeleteTask } from '@/hooks/use-tasks'
+import { useQueryClient } from '@tanstack/react-query'
 import { useUsers } from '@/hooks/use-users'
+import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/use-debounce'
 
 export default function TasksTable() {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [priority, setPriority] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
   const [page, setPage] = useState(1)
   const [editingTask, setEditingTask] = useState<ExtendedTask | null>(null)
-  const [deletingTask, setDeletingTask] = useState<ExtendedTask | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [activeFilters, setActiveFilters] = useState(0)
   
@@ -44,7 +46,7 @@ export default function TasksTable() {
   // Use TanStack Query for data fetching
   const { data: tasksData, isLoading: tasksLoading, error: tasksError } = useTasks({
     page,
-    limit: 10,
+    limit: 5,
     search: debouncedSearch,
     status,
     priority,
@@ -80,6 +82,11 @@ export default function TasksTable() {
     setTempPriority('')
     setTempAssignedTo('')
     setPage(1)
+    // Force a refetch after clearing filters
+    setTimeout(() => {
+      // Invalidate all task queries to force a refetch
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }, 100)
   }
 
   const applyFilters = () => {
@@ -118,12 +125,22 @@ export default function TasksTable() {
     return count
   }
 
-  const handleDelete = async (taskId: string) => {
+  const handleDelete = async (task: ExtendedTask) => {
     try {
-      await deleteTaskMutation.mutateAsync(taskId)
-      setDeletingTask(null)
+      await deleteTaskMutation.mutateAsync(task.id)
+      toast({
+        title: "Task Deleted Successfully",
+        description: `Task "${task.taskName}" has been deleted.`,
+        variant: "default",
+        className: "bg-green-50 border-green-200 text-green-800",
+      })
     } catch (error) {
       console.error('Failed to delete task:', error)
+      toast({
+        title: "Error Deleting Task",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -161,13 +178,13 @@ export default function TasksTable() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4"></div>
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                <div key={i} className="h-16 bg-gray-200 dark:bg-gray-600 rounded"></div>
               ))}
             </div>
           </div>
@@ -333,18 +350,23 @@ export default function TasksTable() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                            <User className="h-4 w-4 text-gray-600" />
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border-2 border-indigo-200">
+                            <User className="h-5 w-5 text-indigo-600" />
                           </div>
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {task.assignedTo?.name}
+                          <div className="text-sm font-semibold text-gray-900">
+                            {task.assignedTo?.name || 'Unassigned'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {task.assignedTo?.email}
+                            {task.assignedTo?.email || 'No assignment'}
                           </div>
+                          {task.assignedTo && (
+                            <div className="text-xs text-indigo-600 font-medium mt-1">
+                              ✓ Assigned
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -384,7 +406,7 @@ export default function TasksTable() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            setDeletingTask(task)
+                            handleDelete(task)
                           }}
                           className="text-red-600 hover:text-red-900"
                           type="button"
@@ -402,21 +424,21 @@ export default function TasksTable() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Page {page} of {totalPages}
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                Showing {((page - 1) * 5) + 1}-{Math.min(page * 5, tasksData?.pagination?.total || 0)} of {tasksData?.pagination?.total || 0} tasks
               </div>
               <div className="flex space-x-2">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Next
                 </button>
@@ -439,16 +461,6 @@ export default function TasksTable() {
         />
       )}
 
-      {deletingTask && (
-        <DeleteTaskModal
-          task={deletingTask}
-          onClose={() => setDeletingTask(null)}
-          onConfirm={() => {
-            handleDelete(deletingTask.id)
-            setDeletingTask(null)
-          }}
-        />
-      )}
     </>
   )
 }

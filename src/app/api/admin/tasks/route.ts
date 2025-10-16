@@ -169,7 +169,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Create notification for assigned user
-    await prisma.notification.create({
+    console.log('Creating notification for user:', assignedToId, 'task:', task.id)
+    const notification = await prisma.notification.create({
       data: {
         title: 'New Task Assigned',
         message: `You have been assigned a new task: ${taskName}`,
@@ -178,6 +179,7 @@ export async function POST(request: NextRequest) {
         taskId: task.id
       }
     })
+    console.log('Notification created:', notification)
 
     return NextResponse.json({ success: true, data: task })
   } catch (error) {

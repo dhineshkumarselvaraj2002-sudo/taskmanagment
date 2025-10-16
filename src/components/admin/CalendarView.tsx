@@ -183,15 +183,27 @@ export default function CalendarView() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedPriority, setSelectedPriority] = useState('all')
   const [searchValue, setSearchValue] = useState('')
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null)
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 })
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
     console.log('CalendarView mounted, fetching data...')
     fetchDeadlineData()
     fetchUsers()
   }, [selectedUser, selectedStatus, selectedPriority, searchValue, currentDate])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout)
+      }
+    }
+  }, [hoverTimeout])
 
   const fetchDeadlineData = async () => {
     try {
@@ -338,51 +350,59 @@ export default function CalendarView() {
   }
 
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    console.log('Mouse enter target:', target)
-    
-    const dateCell = target.closest('.rbc-date-cell')
-    console.log('Date cell found:', dateCell)
-    
-    if (!dateCell) return
-    
-    // Try multiple selectors to find the date
-    const dateText = dateCell.querySelector('.rbc-button-link')?.textContent || 
-                     dateCell.querySelector('button')?.textContent ||
-                     dateCell.textContent?.trim()
-    
-    console.log('Date text found:', dateText)
-    
-    if (!dateText) return
-    
-    const day = parseInt(dateText)
-    console.log('Parsed day:', day)
-    
-    if (isNaN(day)) return
-    
-    // Get current month and year from the calendar
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const dayStr = String(day).padStart(2, '0')
-    const dateString = `${year}-${month}-${dayStr}`
-    
-    console.log('Generated date string:', dateString)
-    console.log('Available deadline data:', deadlineData)
-    
+
+  const handleDateHover = (dateString: string, event: React.MouseEvent) => {
+    // Clear any existing timeout
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+
     const dateData = deadlineData.find(d => d.date === dateString)
-    console.log('Found date data:', dateData)
-    
     if (dateData && dateData.tasks.length > 0) {
-      console.log('Setting hovered date:', dateString)
-      setHoveredDate(dateString)
-      setHoverPosition({ x: e.clientX, y: e.clientY })
+      setSelectedDate(dateString)
+      
+      // Get the bounding rectangle of the hovered element
+      const rect = (event.target as HTMLElement).getBoundingClientRect()
+      const modalHeight = 100 // Compact modal height
+      const modalWidth = 240 // Compact modal width
+      
+      // Calculate position to ensure modal is above the date
+      const x = Math.max(10, Math.min(rect.left + (rect.width / 2) - (modalWidth / 2), window.innerWidth - modalWidth - 10))
+      const y = Math.max(10, rect.top - modalHeight - 10) // Position above with 10px gap
+      
+      setClickPosition({ x, y })
+      setIsModalOpen(true)
     }
   }
 
-  const handleMouseLeave = () => {
-    setHoveredDate(null)
+  const handleDateLeave = () => {
+    // Add longer delay before closing modal to allow moving to modal
+    const timeout = setTimeout(() => {
+      setIsModalOpen(false)
+      setSelectedDate(null)
+    }, 500) // 500ms delay to allow moving to modal
+    
+    setHoverTimeout(timeout)
+  }
+
+  const handleModalEnter = () => {
+    // Clear timeout when mouse enters modal
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+  }
+
+  const handleModalLeave = () => {
+    // Close modal when mouse leaves modal
+    setIsModalOpen(false)
+    setSelectedDate(null)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedDate(null)
   }
 
   const components: Components = {}
@@ -397,17 +417,45 @@ export default function CalendarView() {
     )
   }
 
-  // Navigation functions
+  // Navigation functions with smooth transitions
   const goToPreviousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const goToNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+      setIsTransitioning(false)
+    }, 150)
+  }
+
+  const goToPreviousYear = () => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1))
+      setIsTransitioning(false)
+    }, 150)
+  }
+
+  const goToNextYear = () => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1))
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const goToToday = () => {
-    setCurrentDate(new Date())
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date())
+      setIsTransitioning(false)
+    }, 150)
   }
 
   // Simple custom calendar component
@@ -425,18 +473,18 @@ export default function CalendarView() {
     const days = []
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     
-    // Add day headers
+    // Add modern day headers
     for (let i = 0; i < 7; i++) {
       days.push(
-        <div key={`header-${i}`} className="p-1 text-center text-xs font-semibold text-gray-600 bg-gray-100">
+        <div key={`header-${i}`} className="p-3 text-center text-sm font-bold text-slate-700 bg-gradient-to-r from-slate-100 to-slate-200 border-b border-slate-300/50">
           {dayNames[i]}
         </div>
       )
     }
     
-    // Add empty cells for days before the first day of the month
+    // Add modern empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="p-1 h-16 border border-gray-200 bg-gray-50"></div>)
+      days.push(<div key={`empty-${i}`} className="p-2 h-20 border border-slate-200/50 bg-slate-50/30"></div>)
     }
     
     // Add days of the month
@@ -449,56 +497,20 @@ export default function CalendarView() {
       days.push(
         <div 
           key={day}
-          className={`p-1 h-16 border border-gray-200 cursor-pointer transition-all duration-200 ${
+          className={`p-2 h-20 border border-slate-200/50 transition-all duration-300 ${
             hasDeadlines 
-              ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 hover:shadow-md' 
-              : 'hover:bg-gray-50'
-          } ${isToday ? 'bg-yellow-100 border-yellow-300' : ''}`}
-          onMouseEnter={(e) => {
-            if (hasDeadlines) {
-              setHoveredDate(dateString)
-              setHoverPosition({ x: e.clientX, y: e.clientY })
-            }
-          }}
-          onMouseLeave={() => setHoveredDate(null)}
+              ? 'bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border-blue-200/60 hover:shadow-lg cursor-pointer hover:scale-105 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90' 
+              : 'hover:bg-slate-50/80 cursor-default hover:shadow-sm'
+          } ${isToday ? 'bg-gradient-to-br from-amber-100/90 to-yellow-100/90 border-amber-300/70 shadow-md' : ''}`}
+          onMouseEnter={(e) => handleDateHover(dateString, e)}
+          onMouseLeave={handleDateLeave}
         >
-          <div className="flex flex-col h-full">
-            <div className={`text-xs font-medium ${isToday ? 'text-yellow-800' : 'text-gray-900'}`}>
+          <div className="flex items-center justify-between h-full">
+            <span className={`text-sm font-bold ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
               {day}
-            </div>
+            </span>
             {hasDeadlines && (
-              <div className="mt-0.5 space-y-0.5">
-                {dateData.tasks.slice(0, 2).map((task, index) => (
-                  <div key={index} className="space-y-0.5">
-                    {/* Task Name */}
-                    <div
-                      className={`px-1 py-0.5 rounded text-xs font-medium ${
-                        task.priority === 'CRITICAL'
-                          ? 'bg-red-100 text-red-700'
-                          : task.priority === 'HIGH'
-                          ? 'bg-orange-100 text-orange-700'
-                          : task.priority === 'MEDIUM'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}
-                    >
-                      {task.taskName.length > 8 ? task.taskName.substring(0, 8) + '...' : task.taskName}
-                    </div>
-                    {/* User Name */}
-                    <div className="px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                      {task.assignedTo?.name ? 
-                        (task.assignedTo.name.length > 6 ? task.assignedTo.name.substring(0, 6) + '...' : task.assignedTo.name) 
-                        : 'Unassigned'
-                      }
-                    </div>
-                  </div>
-                ))}
-                {dateData.tasks.length > 2 && (
-                  <div className="px-1 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 text-center">
-                    +{dateData.tasks.length - 2} more
-                  </div>
-                )}
-              </div>
+              <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-sm"></div>
             )}
           </div>
         </div>
@@ -506,7 +518,9 @@ export default function CalendarView() {
     }
     
     return (
-      <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-lg overflow-hidden">
+      <div className={`grid grid-cols-7 gap-0 border border-slate-200/60 rounded-2xl overflow-hidden shadow-inner bg-gradient-to-br from-slate-50/50 to-white transition-all duration-300 ${
+        isTransitioning ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+      }`}>
         {days}
       </div>
     )
@@ -542,17 +556,45 @@ export default function CalendarView() {
         onApplyFilters={handleApplyFilters}
       /> */}
 
-      {/* Custom Calendar */}
-      <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-4 py-4">
-          {/* Calendar Header with Navigation */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h2>
-              <p className="text-sm text-gray-500">
-                Hover over dates with deadlines to see task details
+      {/* Modern Professional Calendar */}
+      <div className="bg-white shadow-2xl rounded-3xl border border-gray-200/50 overflow-hidden backdrop-blur-sm">
+        <div className="px-6 py-6">
+          {/* Modern Calendar Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={goToPreviousMonth}
+                  className={`p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:shadow-md ${
+                    isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                  }`}
+                  title="Previous Month"
+                  disabled={isTransitioning}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h2 className={`text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent transition-all duration-300 ${
+                  isTransitioning ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+                }`}>
+                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h2>
+                <button
+                  onClick={goToNextMonth}
+                  className={`p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:shadow-md ${
+                    isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                  }`}
+                  title="Next Month"
+                  disabled={isTransitioning}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 font-medium">
+                Hover over dates with deadlines to view task details
               </p>
               {/* Active Filters Display */}
               {(selectedUser !== 'all' || selectedStatus !== 'all' || selectedPriority !== 'all' || searchValue) && (
@@ -581,28 +623,70 @@ export default function CalendarView() {
               )}
             </div>
             <div className="flex items-center space-x-2">
+              {/* Year Navigation */}
               <button
-                onClick={goToPreviousMonth}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Previous Month"
+                onClick={goToPreviousYear}
+                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Previous Year"
+                disabled={isTransitioning}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              {/* Month Navigation */}
+              <button
+                onClick={goToPreviousMonth}
+                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Previous Month"
+                disabled={isTransitioning}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
+              
+              {/* Today Button */}
               <button
                 onClick={goToToday}
-                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                disabled={isTransitioning}
               >
                 Today
               </button>
+              
+              {/* Month Navigation */}
               <button
                 onClick={goToNextMonth}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
                 title="Next Month"
+                disabled={isTransitioning}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              
+              {/* Year Navigation */}
+              <button
+                onClick={goToNextYear}
+                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Next Year"
+                disabled={isTransitioning}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
@@ -610,17 +694,17 @@ export default function CalendarView() {
           <div className="h-[400px] overflow-auto">
             {deadlineData.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <div className="text-center p-8">
+                  <div className="text-slate-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No Deadlines Found</h3>
-                  <p className="text-sm text-gray-500 mb-2">
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">No Deadlines Found</h3>
+                  <p className="text-sm text-slate-600 mb-3">
                     No tasks with deadlines found for {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-500">
                     Try adjusting your filters or check if tasks have been assigned deadlines
                   </p>
                 </div>
@@ -631,7 +715,7 @@ export default function CalendarView() {
           </div>
           
           {/* Debug Info */}
-          <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+          {/* <div className="mt-4 p-4 bg-gray-100 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Database Information:</h4>
             <p className="text-xs text-gray-600">Deadline entries: {deadlineData.length}</p>
             <p className="text-xs text-gray-600">Current month: {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
@@ -639,85 +723,81 @@ export default function CalendarView() {
             {deadlineData.length > 0 && (
               <p className="text-xs text-gray-600">First deadline: {deadlineData[0].date} ({deadlineData[0].tasks.length} tasks)</p>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
 
-      {/* Compact Professional Hover Popup */}
-      {hoveredDate && (
-        <div
-          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-xl transform transition-all duration-200 max-w-xs"
-          style={{
-            left: Math.min(hoverPosition.x + 15, window.innerWidth - 350),
-            top: Math.max(hoverPosition.y - 10, 10),
-            pointerEvents: 'none',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }}
-        >
-          {/* Compact Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-lg px-3 py-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-white">
-                {format(new Date(hoveredDate), 'MMM dd')}
-              </h4>
-              <div className="flex items-center space-x-1">
-                <ClockIcon className="h-3 w-3 text-white" />
-                <span className="text-xs text-white opacity-90">
-                  {deadlineData.find(d => d.date === hoveredDate)?.tasks.length || 0} tasks
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Compact Content */}
-          <div className="p-3 max-h-64 overflow-y-auto">
-            <div className="space-y-2">
-              {deadlineData
-                .find(d => d.date === hoveredDate)
-                ?.tasks.map((task, index) => (
-                  <div key={index} className="bg-gray-50 rounded-md p-2 border border-gray-100">
-                    {/* Task Name - Compact */}
-                    <div className="flex items-start justify-between mb-1">
-                      <h5 className="text-xs font-medium text-gray-900 truncate flex-1 mr-2">
-                        {task.taskName}
-                      </h5>
-                      <div className="flex items-center space-x-1">
-                        {getStatusIcon(task.status)}
-                      </div>
-                    </div>
-                    
-                    {/* User Info - Compact */}
-                    <div className="flex items-center space-x-1 mb-1">
-                      <UserIcon className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-600 truncate">
-                        {task.assignedTo?.name || 'Unassigned'}
-                      </span>
-                    </div>
-                    
-                    {/* Status and Priority - Inline */}
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getPriorityBadgeColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </div>
-                    
-                    {/* Compact Progress */}
-                    <div className="flex items-center space-x-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-1 rounded-full transition-all duration-300"
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium">{task.progress}%</span>
-                    </div>
+
+      {/* Task Details Modal */}
+      {isModalOpen && selectedDate && (
+        <div className="fixed inset-0 z-50">
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-black/30 transition-opacity"
+            onClick={closeModal}
+          ></div>
+
+          {/* Professional compact modal positioned above the hovered date */}
+          <div 
+            className="fixed bg-white/98 backdrop-blur-md rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-60 border border-slate-200/60"
+            style={{
+              left: clickPosition.x,
+              top: clickPosition.y,
+              zIndex: 60
+            }}
+            onMouseEnter={handleModalEnter}
+            onMouseLeave={handleModalLeave}
+          >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">
+                      {format(new Date(selectedDate), 'MMM dd, yyyy')}
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      {deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0} tasks due
+                    </p>
                   </div>
-                ))}
-            </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="bg-white px-3 py-3">
+                <div className="space-y-2">
+                  {deadlineData
+                    .find(d => d.date === selectedDate)
+                    ?.tasks.slice(0, 3).map((task, index) => (
+                      <div key={index} className="bg-slate-50 rounded-lg p-2 border border-slate-200/50">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-slate-900 truncate">
+                              {task.taskName}
+                            </h4>
+                            <div className="flex items-center space-x-1 mt-1">
+                              <UserIcon className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                              <span className="text-xs text-slate-600 truncate">
+                                {task.assignedTo?.name || 'Unassigned'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 ml-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(task.status)}`}>
+                              {task.status.replace('_', ' ')}
+                            </span>
+                            {getStatusIcon(task.status)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  {(deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0) > 3 && (
+                    <div className="text-xs text-slate-500 text-center py-1 bg-slate-100 rounded-lg">
+                      +{(deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0) - 3} more tasks
+                    </div>
+                  )}
+                </div>
+              </div>
+
           </div>
         </div>
       )}

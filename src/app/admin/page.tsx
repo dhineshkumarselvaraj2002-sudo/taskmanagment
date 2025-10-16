@@ -21,12 +21,12 @@ export default async function AdminDashboard() {
     redirect('/user/dashboard')
   }
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-6 bg-gray-50 dark:bg-gray-900">
+      <div className="w-full">
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-admin-heading">Admin Dashboard</h1>
+            <p className="mt-2 text-admin-body">
               Overview of your task management system
             </p>
           </div>
@@ -35,7 +35,7 @@ export default async function AdminDashboard() {
           <DashboardStats />
 
          {/* Analytics Section */}
-         <div className="bg-white rounded-lg shadow-sm p-6">
+         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <AnalyticsSection />
           </div>
 

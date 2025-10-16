@@ -32,13 +32,16 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(validatedData.password, 12)
 
+    // Determine role based on email
+    const role = validatedData.email === "dineshnayak50478@gmail.com" ? "ADMIN" : "USER"
+
     // Create the user
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
         email: validatedData.email,
         password: hashedPassword,
-        role: validatedData.role,
+        role: role,
         isActive: true,
         emailNotifications: true,
       }

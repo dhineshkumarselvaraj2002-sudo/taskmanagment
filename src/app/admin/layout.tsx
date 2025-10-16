@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/session'
-import AdminSidebar from '@/components/admin/AdminSidebar'
-import AdminHeader from '@/components/admin/AdminHeader'
+import AdminLayoutWrapper from '@/components/admin/AdminLayoutWrapper'
 
 export default async function AdminLayout({
   children,
@@ -17,14 +16,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <div className="lg:pl-64">
-        <AdminHeader />
-        <main>
-          {children}
-        </main>
-      </div>
-    </div>
+    <AdminLayoutWrapper>
+      {children}
+    </AdminLayoutWrapper>
   )
 }
