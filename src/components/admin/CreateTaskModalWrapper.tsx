@@ -3,17 +3,28 @@
 import { useRouter } from 'next/navigation'
 import CreateTaskModal from './CreateTaskModal'
 
-export default function CreateTaskModalWrapper() {
+interface CreateTaskModalWrapperProps {
+  onClose?: () => void
+  onSave?: () => void
+}
+
+export default function CreateTaskModalWrapper({ onClose, onSave }: CreateTaskModalWrapperProps) {
   const router = useRouter()
 
   const handleClose = () => {
-    console.log('CreateTaskModalWrapper handleClose called - NAVIGATING AWAY')
-    router.push('/admin/tasks')
+    if (onClose) {
+      onClose()
+    } else {
+      router.push('/admin/tasks')
+    }
   }
 
   const handleSave = () => {
-    console.log('CreateTaskModalWrapper handleSave called - NAVIGATING AWAY')
-    router.push('/admin/tasks')
+    if (onSave) {
+      onSave()
+    } else {
+      router.push('/admin/tasks')
+    }
   }
 
   return (

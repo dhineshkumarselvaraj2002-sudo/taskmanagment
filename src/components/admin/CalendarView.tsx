@@ -5,6 +5,7 @@ import { Calendar, momentLocalizer, Components } from 'react-big-calendar'
 import moment from 'moment'
 import { ExtendedUser } from '@/types'
 import { format } from 'date-fns'
+import ModernFilters from './ModernFilters'
 import { 
   UserIcon, 
   ClockIcon, 
@@ -178,9 +179,10 @@ export default function CalendarView() {
   const [deadlineData, setDeadlineData] = useState<DeadlineData[]>([])
   const [users, setUsers] = useState<ExtendedUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedUser, setSelectedUser] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
-  const [selectedPriority, setSelectedPriority] = useState('')
+  const [selectedUser, setSelectedUser] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedPriority, setSelectedPriority] = useState('all')
+  const [searchValue, setSearchValue] = useState('')
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -189,15 +191,16 @@ export default function CalendarView() {
     console.log('CalendarView mounted, fetching data...')
     fetchDeadlineData()
     fetchUsers()
-  }, [selectedUser, selectedStatus, selectedPriority, currentDate])
+  }, [selectedUser, selectedStatus, selectedPriority, searchValue, currentDate])
 
   const fetchDeadlineData = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      if (selectedUser) params.append('assignedTo', selectedUser)
-      if (selectedStatus) params.append('status', selectedStatus)
-      if (selectedPriority) params.append('priority', selectedPriority)
+      if (selectedUser && selectedUser !== 'all') params.append('assignedTo', selectedUser)
+      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus)
+      if (selectedPriority && selectedPriority !== 'all') params.append('priority', selectedPriority)
+      if (searchValue) params.append('search', searchValue)
       
       // Get current month range based on selected date
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
@@ -230,6 +233,49 @@ export default function CalendarView() {
     } catch (error) {
       console.error('Failed to fetch users:', error)
     }
+  }
+
+  // Filter options
+  const userOptions = [
+    { value: 'all', label: 'All Users' },
+    ...users.map(user => ({
+      value: user.id,
+      label: user.name
+    }))
+  ]
+
+  const statusOptions = [
+    { value: 'all', label: 'All Status' },
+    { value: 'TODO', label: 'To Do' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'IN_REVIEW', label: 'In Review' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'BLOCKED', label: 'Blocked' }
+  ]
+
+  const priorityOptions = [
+    { value: 'all', label: 'All Priority' },
+    { value: 'LOW', label: 'Low' },
+    { value: 'MEDIUM', label: 'Medium' },
+    { value: 'HIGH', label: 'High' },
+    { value: 'CRITICAL', label: 'Critical' }
+  ]
+
+  const handleClearFilters = () => {
+    setSearchValue('')
+    setSelectedUser('all')
+    setSelectedStatus('all')
+    setSelectedPriority('all')
+  }
+
+  const handleApplyFilters = () => {
+    console.log('Applying calendar filters:', {
+      search: searchValue,
+      user: selectedUser,
+      status: selectedStatus,
+      priority: selectedPriority
+    })
+    // Filters are already applied through useEffect
   }
 
 
@@ -469,69 +515,32 @@ export default function CalendarView() {
   return (
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: calendarStyles }} />
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Filters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="user" className="block text-sm font-medium text-gray-700">
-                User
-              </label>
-              <select
-                id="user"
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">All Users</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                Status
-              </label>
-              <select
-                id="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">All Status</option>
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="IN_REVIEW">In Review</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="BLOCKED">Blocked</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-                Priority
-              </label>
-              <select
-                id="priority"
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">All Priority</option>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      
+      {/* Modern Filters */}
+      {/* <ModernFilters
+        searchPlaceholder="Search tasks by title, description, or assignee..."
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        filters={{
+          status: {
+            options: statusOptions,
+            value: selectedStatus,
+            onChange: setSelectedStatus
+          },
+          priority: {
+            options: priorityOptions,
+            value: selectedPriority,
+            onChange: setSelectedPriority
+          },
+          user: {
+            options: userOptions,
+            value: selectedUser,
+            onChange: setSelectedUser
+          }
+        }}
+        onClearFilters={handleClearFilters}
+        onApplyFilters={handleApplyFilters}
+      /> */}
 
       {/* Custom Calendar */}
       <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
@@ -546,19 +555,24 @@ export default function CalendarView() {
                 Hover over dates with deadlines to see task details
               </p>
               {/* Active Filters Display */}
-              {(selectedUser || selectedStatus || selectedPriority) && (
+              {(selectedUser !== 'all' || selectedStatus !== 'all' || selectedPriority !== 'all' || searchValue) && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedUser && (
+                  {searchValue && (
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                      Search: "{searchValue}"
+                    </span>
+                  )}
+                  {selectedUser !== 'all' && (
                     <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                       User: {users.find(u => u.id === selectedUser)?.name || 'Unknown'}
                     </span>
                   )}
-                  {selectedStatus && (
+                  {selectedStatus !== 'all' && (
                     <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                       Status: {selectedStatus.replace('_', ' ')}
                     </span>
                   )}
-                  {selectedPriority && (
+                  {selectedPriority !== 'all' && (
                     <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
                       Priority: {selectedPriority}
                     </span>

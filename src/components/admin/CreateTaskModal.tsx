@@ -40,7 +40,6 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        console.log('Escape key pressed, closing modal')
         onClose?.()
       }
     }
@@ -138,54 +137,28 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
     return null
   }
 
-  // Debug log for modal rendering
-  console.log('CreateTaskModal rendering')
-  console.log('CreateTaskModal isClient:', isClient)
-  console.log('CreateTaskModal formData:', formData)
-  console.log('CreateTaskModal users:', users)
-  console.log('CreateTaskModal users length:', users.length)
-
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* Backdrop */}
         <div 
-          className="fixed inset-0 bg-transparent transition-opacity" 
-          onClick={(e) => {
-            console.log('CreateTaskModal backdrop clicked - CLOSING MODAL')
-            onClose?.()
-          }} 
-          style={{ zIndex: 9998, pointerEvents: 'auto' }}
+          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
+          onClick={onClose}
         />
         
+        {/* Modal Content */}
         <div 
           className="relative inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle"
-          onClick={(e) => {
-            console.log('Modal content clicked, preventing propagation')
-            e.stopPropagation()
-          }}
-          onMouseDown={(e) => {
-            console.log('Modal content mousedown, preventing propagation')
-            e.stopPropagation()
-          }}
-          style={{ zIndex: 9999, position: 'relative', pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <form onSubmit={handleSubmit} onClick={(e) => {
-            console.log('Form clicked, preventing propagation')
-            e.stopPropagation()
-          }} onMouseDown={(e) => {
-            console.log('Form mousedown, preventing propagation')
-            e.stopPropagation()
-          }}>
+          <form onSubmit={handleSubmit}>
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Create New Task</h3>
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log('X button clicked - CLOSING MODAL')
-                    onClose?.()
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -210,10 +183,6 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
                       required
                       value={formData.taskName}
                       onChange={handleChange}
-                      onClick={(e) => {
-                        console.log('Task name input clicked')
-                        e.stopPropagation()
-                      }}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
@@ -228,10 +197,6 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
                       required
                       value={formData.assignedToId}
                       onChange={handleChange}
-                      onClick={(e) => {
-                        console.log('Select field clicked')
-                        e.stopPropagation()
-                      }}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     >
                       <option value="">Select User</option>
@@ -429,12 +394,8 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  console.log('Cancel button clicked - CLOSING MODAL')
-                  onClose?.()
-                }}
+                onClick={onClose}
                 className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                suppressHydrationWarning
               >
                 Cancel
               </button>

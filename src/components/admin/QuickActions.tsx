@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import { Plus, Users, CheckSquare, Calendar, Bell } from 'lucide-react'
-import BulkTaskAssignment from './BulkTaskAssignment'
-import SeedTasksButton from './SeedTasksButton'
 
 export default function QuickActions() {
   const actions = [
@@ -42,11 +40,6 @@ export default function QuickActions() {
       <div className="px-4 py-5 sm:p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
         
-        {/* Bulk Task Assignment */}
-        <div className="mb-6 flex space-x-4">
-          <BulkTaskAssignment />
-          <SeedTasksButton />
-        </div>
         
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {actions.map((action) => (
