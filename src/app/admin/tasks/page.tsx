@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import TasksTable from '@/components/admin/TasksTable'
-import CreateTaskModal from '@/components/admin/CreateTaskModal'
+import CreateTaskModalWrapper from '@/components/admin/CreateTaskModalWrapper'
 import { SearchParams } from '@/types'
 
 interface TasksPageProps {
@@ -12,21 +12,15 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   const showCreateModal = params.action === 'create'
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Tasks Management</h1>
-              <p className="mt-2 text-gray-600">
-                Manage and assign tasks to users
-              </p>
-            </div>
-            <CreateTaskModal />
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Task Management</h1>
+            <p className="mt-1 text-gray-600">Manage and assign tasks to users</p>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Tasks Table</h3>
             <Suspense fallback={
               <div className="flex items-center justify-center h-64 bg-white rounded border">
                 <div className="text-center">
@@ -41,7 +35,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         </div>
       </div>
 
-      {showCreateModal && <CreateTaskModal />}
+      {showCreateModal && <CreateTaskModalWrapper />}
     </div>
   )
 }

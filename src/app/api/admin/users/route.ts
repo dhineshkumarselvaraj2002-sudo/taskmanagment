@@ -26,8 +26,41 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || ''
+    const status = searchParams.get('status') || ''
+    const dateRange = searchParams.get('dateRange') || ''
 
     const skip = (page - 1) * limit
+
+    // Build date filter
+    let dateFilter = {}
+    if (dateRange) {
+      const now = new Date()
+      switch (dateRange) {
+        case 'today':
+          dateFilter = {
+            createdAt: {
+              gte: new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            }
+          }
+          break
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          dateFilter = { createdAt: { gte: weekAgo } }
+          break
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          dateFilter = { createdAt: { gte: monthAgo } }
+          break
+        case 'quarter':
+          const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+          dateFilter = { createdAt: { gte: quarterAgo } }
+          break
+        case 'year':
+          const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+          dateFilter = { createdAt: { gte: yearAgo } }
+          break
+      }
+    }
 
     const where = {
       ...(search && {
@@ -36,7 +69,9 @@ export async function GET(request: NextRequest) {
           { email: { contains: search, mode: 'insensitive' as const } }
         ]
       }),
-      ...(role && { role: role as any })
+      ...(role && { role: role as any }),
+      ...(status && { isActive: status === 'active' }),
+      ...dateFilter
     }
 
     const [users, total] = await Promise.all([
@@ -45,11 +80,20 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          image: true,
+          isActive: true,
+          emailNotifications: true,
+          emailVerified: true,
+          createdAt: true,
+          updatedAt: true,
           _count: {
             select: {
-              assignedTasks: true,
-              createdTasks: true
+              assignedTasks: true
             }
           }
         }

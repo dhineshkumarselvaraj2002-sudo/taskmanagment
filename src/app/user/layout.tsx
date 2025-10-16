@@ -15,7 +15,7 @@ export default async function UserLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* User Header */}
       <UserHeader />
 

@@ -83,29 +83,7 @@ export async function PATCH(
       }
     })
 
-    // Create notifications for admin users
-    const adminUsers = await prisma.user.findMany({
-      where: { role: 'ADMIN' },
-      select: { id: true, name: true, email: true }
-    })
-
-    // Create notifications for each admin
-    const notificationPromises = adminUsers.map(admin => 
-      prisma.notification.create({
-        data: {
-          title: 'Task Status Updated',
-          message: `Task "${currentTask.taskName}" status changed from ${currentTask.status} to ${status} by ${currentUser.name}`,
-          type: 'STATUS_CHANGED',
-          userId: admin.id,
-          taskId: taskId,
-          status: 'UNREAD'
-        }
-      })
-    )
-
-    await Promise.all(notificationPromises)
-
-    // Also notify the task creator if they're not the one updating
+    // Only notify the admin who originally created/assigned the task
     if (currentTask.createdById !== currentUser.id) {
       await prisma.notification.create({
         data: {

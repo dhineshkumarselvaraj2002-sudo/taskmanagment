@@ -13,7 +13,7 @@ export default function DeleteUserModal({ user, onClose, onConfirm }: DeleteUser
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-transparent transition-opacity" onClick={onClose} />
         
         <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -44,7 +44,7 @@ export default function DeleteUserModal({ user, onClose, onConfirm }: DeleteUser
             <button
               type="button"
               onClick={onConfirm}
-              disabled={user._count?.assignedTasks && user._count.assignedTasks > 0}
+              disabled={!!(user._count?.assignedTasks && user._count.assignedTasks > 0)}
               className="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed sm:ml-3 sm:w-auto sm:text-sm"
             >
               Delete

@@ -151,6 +151,11 @@ model Task {
   @@index([endDate])
   @@index([status])
   @@index([priority])
+  @@index([assignedToId, status])
+  @@index([assignedToId, priority])
+  @@index([status, priority])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@map("tasks")
 }
 
@@ -169,6 +174,9 @@ model Notification {
   task        Task?              @relation(fields: [taskId], references: [id], onDelete: SetNull)
   
   @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([taskId])
+  @@index([type])
   @@map("notifications")
 }
 
@@ -184,6 +192,9 @@ model Comment {
   taskId    String
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
   @@map("comments")
 }
 

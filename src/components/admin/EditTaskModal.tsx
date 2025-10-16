@@ -2,16 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { ExtendedTask, ExtendedUser, TaskFormData } from '@/types'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { X } from 'lucide-react'
+import { useToast, toast as toastFn } from '@/hooks/use-toast'
+import { useUpdateTask } from '@/hooks/use-tasks'
+import { useUpdateUserTask } from '@/hooks/use-user-tasks'
 
 interface EditTaskModalProps {
   task: ExtendedTask
   users: ExtendedUser[]
   onClose: () => void
   onSave: () => void
+  isUserModal?: boolean // Add this prop to determine if it's used by user or admin
 }
 
-export default function EditTaskModal({ task, users, onClose, onSave }: EditTaskModalProps) {
+export default function EditTaskModal({ task, users, onClose, onSave, isUserModal = false }: EditTaskModalProps) {
+  const { toast } = useToast()
+  const updateTaskMutation = useUpdateTask()
+  const updateUserTaskMutation = useUpdateUserTask()
   const [formData, setFormData] = useState<TaskFormData>({
     taskName: task.taskName,
     taskDescription: task.taskDescription,
@@ -28,43 +35,78 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
       isCompleted: item.isCompleted
     })) || []
   })
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isClient, setIsClient] = useState(false)
+  const loading = isUserModal ? updateUserTaskMutation.isPending : updateTaskMutation.isPending
+  const isUpdating = isUserModal ? updateUserTaskMutation.isPending : updateTaskMutation.isPending
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log('Escape key pressed, closing modal')
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
-    try {
-      const response = await fetch(`/api/admin/tasks/${task.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
+    // Basic validation
+    if (!formData.taskName.trim()) {
+      setError('Task name is required')
+      return
+    }
 
-      const data = await response.json()
+    if (!formData.assignedToId) {
+      setError('Please assign the task to a user')
+      return
+    }
 
-      if (data.success) {
+    if (formData.startDate >= formData.endDate) {
+      setError('End date must be after start date')
+      return
+    }
+
+    // Start the mutation and wait for it to complete
+    const mutation = isUserModal ? updateUserTaskMutation : updateTaskMutation
+    mutation.mutate({ id: task.id, taskData: formData }, {
+      onSuccess: () => {
+        // Show success toast and close modal only after successful update
+        toast({
+          title: "Task Updated",
+          description: `Task "${formData.taskName}" has been updated successfully.`,
+        })
         onSave()
         onClose()
-      } else {
-        setError(data.error || 'Failed to update task')
+      },
+      onError: (error: any) => {
+        // Show error toast if mutation fails
+        setError(error.message || 'Failed to update task')
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to update task',
+          variant: "destructive",
+        })
       }
-    } catch (error) {
-      setError('Failed to update task')
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+               type === 'number' ? Number(value) : value
     }))
   }
 
@@ -96,23 +138,45 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
     }))
   }
 
+  if (!isClient) {
+    return null
+  }
+
+  // Debug log for modal rendering
+  console.log('EditTaskModal rendering for task:', task.id)
+  console.log('EditTaskModal isClient:', isClient)
+  console.log('EditTaskModal formData:', formData)
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div 
+          className="fixed inset-0 bg-transparent transition-opacity" 
+          onClick={(e) => {
+            console.log('Backdrop clicked, closing modal')
+            onClose()
+          }} 
+          style={{ zIndex: 9998 }} 
+        />
         
-        <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle">
+        <div 
+          className="relative inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle" 
+          style={{ zIndex: 9999 }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <form onSubmit={handleSubmit}>
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Edit Task</h3>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    console.log('X button clicked, closing modal')
+                    onClose()
+                  }}
                   className="text-gray-400 hover:text-gray-600"
-                  suppressHydrationWarning
                 >
-                  <XMarkIcon className="h-6 w-6" />
+                  <X className="h-6 w-6" />
                 </button>
               </div>
 
@@ -136,7 +200,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       value={formData.taskName}
                       onChange={handleChange}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     />
                   </div>
 
@@ -151,7 +214,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       value={formData.assignedToId}
                       onChange={handleChange}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     >
                       <option value="">Select User</option>
                       {users.map((user) => (
@@ -174,7 +236,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                     value={formData.taskDescription}
                     onChange={handleChange}
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    suppressHydrationWarning
                   />
                 </div>
 
@@ -188,10 +249,9 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       name="startDate"
                       id="startDate"
                       required
-                      value={formData.startDate instanceof Date ? formData.startDate.toISOString().split('T')[0] : formData.startDate}
+                      value={isClient ? (formData.startDate instanceof Date ? formData.startDate.toISOString().split('T')[0] : new Date(formData.startDate).toISOString().split('T')[0]) : ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     />
                   </div>
 
@@ -204,10 +264,9 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       name="endDate"
                       id="endDate"
                       required
-                      value={formData.endDate instanceof Date ? formData.endDate.toISOString().split('T')[0] : formData.endDate}
+                      value={isClient ? (formData.endDate instanceof Date ? formData.endDate.toISOString().split('T')[0] : new Date(formData.endDate).toISOString().split('T')[0]) : ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, endDate: new Date(e.target.value) }))}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     />
                   </div>
                 </div>
@@ -223,7 +282,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       value={formData.status}
                       onChange={handleChange}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     >
                       <option value="TODO">To Do</option>
                       <option value="IN_PROGRESS">In Progress</option>
@@ -243,7 +301,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       value={formData.priority}
                       onChange={handleChange}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     >
                       <option value="LOW">Low</option>
                       <option value="MEDIUM">Medium</option>
@@ -264,7 +321,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       value={formData.estimatedHours}
                       onChange={handleChange}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      suppressHydrationWarning
                     />
                   </div>
                 </div>
@@ -280,7 +336,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                     value={formData.category}
                     onChange={handleChange}
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    suppressHydrationWarning
                   />
                 </div>
 
@@ -296,7 +351,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                     onChange={handleTagsChange}
                     placeholder="urgent, frontend, bug"
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    suppressHydrationWarning
                   />
                 </div>
 
@@ -310,7 +364,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                       type="button"
                       onClick={addChecklistItem}
                       className="text-sm text-indigo-600 hover:text-indigo-500"
-                      suppressHydrationWarning
                     >
                       + Add Item
                     </button>
@@ -322,7 +375,6 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                         checked={item.isCompleted}
                         onChange={(e) => updateChecklistItem(index, 'isCompleted', e.target.checked)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        suppressHydrationWarning
                       />
                       <input
                         type="text"
@@ -330,13 +382,11 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
                         onChange={(e) => updateChecklistItem(index, 'title', e.target.value)}
                         placeholder="Checklist item"
                         className="flex-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        suppressHydrationWarning
                       />
                       <button
                         type="button"
                         onClick={() => removeChecklistItem(index)}
                         className="text-red-600 hover:text-red-500"
-                        suppressHydrationWarning
                       >
                         Remove
                       </button>
@@ -349,15 +399,18 @@ export default function EditTaskModal({ task, users, onClose, onSave }: EditTask
             <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isUpdating}
                 className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm"
                 suppressHydrationWarning
               >
-                {loading ? 'Updating...' : 'Update Task'}
+                {isUpdating ? 'Updating...' : 'Update Task'}
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  console.log('Cancel button clicked, closing modal')
+                  onClose()
+                }}
                 className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 suppressHydrationWarning
               >

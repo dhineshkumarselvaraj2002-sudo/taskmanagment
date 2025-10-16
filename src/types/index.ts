@@ -13,6 +13,10 @@ export interface ExtendedUser extends User {
   comments?: Comment[]
   timeLogs?: TimeLog[]
   activityLogs?: ActivityLog[]
+  _count?: {
+    assignedTasks?: number
+    createdTasks?: number
+  }
 }
 
 export interface ExtendedTask extends Task {

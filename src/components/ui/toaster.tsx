@@ -31,7 +31,7 @@ export function Toaster() {
               <div 
                 className="h-full bg-gray-400 rounded-full animate-shrink"
                 style={{
-                  animation: `shrink 3000ms linear forwards`
+                  animation: `shrink 2000ms linear forwards`
                 }}
               />
             </div>

@@ -1,91 +1,127 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ExtendedTask, ExtendedUser } from '@/types'
 import { format } from 'date-fns'
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  EyeIcon,
-  CalendarIcon,
-  UserIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline'
+  Edit, 
+  Trash2, 
+  Eye,
+  Calendar,
+  User,
+  Clock,
+  Search,
+  Filter,
+  X,
+  ChevronDown,
+  Sparkles
+} from 'lucide-react'
 import EditTaskModal from './EditTaskModal'
 import DeleteTaskModal from './DeleteTaskModal'
+import { useTasks, useDeleteTask } from '@/hooks/use-tasks'
+import { useUsers } from '@/hooks/use-users'
+import { useDebounce } from '@/hooks/use-debounce'
 
 export default function TasksTable() {
-  const [tasks, setTasks] = useState<ExtendedTask[]>([])
-  const [users, setUsers] = useState<ExtendedUser[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [priority, setPriority] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [editingTask, setEditingTask] = useState<ExtendedTask | null>(null)
   const [deletingTask, setDeletingTask] = useState<ExtendedTask | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [activeFilters, setActiveFilters] = useState(0)
+  
+  // Temporary filter values (not applied until Apply button is clicked)
+  const [tempStatus, setTempStatus] = useState('')
+  const [tempPriority, setTempPriority] = useState('')
+  const [tempAssignedTo, setTempAssignedTo] = useState('')
 
-  const fetchTasks = async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        ...(search && { search }),
-        ...(status && { status }),
-        ...(priority && { priority }),
-        ...(assignedTo && { assignedTo })
-      })
-      
-      const response = await fetch(`/api/admin/tasks?${params}`)
-      const data = await response.json()
-      
-      if (data.success) {
-        setTasks(data.data)
-        setTotalPages(data.pagination.totalPages)
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Debounce search input with 2 second delay
+  const debouncedSearch = useDebounce(search, 2000)
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/admin/users?limit=100')
-      const data = await response.json()
-      if (data.success) {
-        setUsers(data.data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch users:', error)
-    }
-  }
+  // Use TanStack Query for data fetching
+  const { data: tasksData, isLoading: tasksLoading, error: tasksError } = useTasks({
+    page,
+    limit: 10,
+    search: debouncedSearch,
+    status,
+    priority,
+    assignedTo,
+  })
 
-  useEffect(() => {
-    fetchTasks()
-    fetchUsers()
-  }, [page, search, status, priority, assignedTo])
+  const { data: usersData, isLoading: usersLoading } = useUsers({
+    limit: 100,
+  })
+
+  const deleteTaskMutation = useDeleteTask()
+
+  // Extract data from queries
+  const tasks = tasksData?.data || []
+  const users = usersData?.data || []
+  const totalPages = tasksData?.pagination?.totalPages || 1
+  const loading = tasksLoading || usersLoading
+
+  // TanStack Query handles data fetching automatically
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
-    fetchTasks()
+    // TanStack Query will automatically refetch when search state changes
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setStatus('')
+    setPriority('')
+    setAssignedTo('')
+    setTempStatus('')
+    setTempPriority('')
+    setTempAssignedTo('')
+    setPage(1)
+  }
+
+  const applyFilters = () => {
+    setStatus(tempStatus)
+    setPriority(tempPriority)
+    setAssignedTo(tempAssignedTo)
+    setPage(1)
+  }
+
+  const resetTempFilters = () => {
+    setTempStatus(status)
+    setTempPriority(priority)
+    setTempAssignedTo(assignedTo)
+  }
+
+  // Check if any temp values are different from applied values
+  const hasTempChanges = () => {
+    return tempStatus !== status || tempPriority !== priority || tempAssignedTo !== assignedTo
+  }
+
+  // Initialize temp values when filter panel opens
+  useEffect(() => {
+    if (showFilters) {
+      setTempStatus(status)
+      setTempPriority(priority)
+      setTempAssignedTo(assignedTo)
+    }
+  }, [showFilters, status, priority, assignedTo])
+
+  const getActiveFilterCount = () => {
+    let count = 0
+    // Only count actual filter options, not search
+    if (status) count++
+    if (priority) count++
+    if (assignedTo) count++
+    return count
   }
 
   const handleDelete = async (taskId: string) => {
     try {
-      const response = await fetch(`/api/admin/tasks/${taskId}`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        setTasks(tasks.filter(task => task.id !== taskId))
-        setDeletingTask(null)
-      }
+      await deleteTaskMutation.mutateAsync(taskId)
+      setDeletingTask(null)
     } catch (error) {
       console.error('Failed to delete task:', error)
     }
@@ -144,64 +180,117 @@ export default function TasksTable() {
     <>
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          {/* Search and Filters */}
-          <div className="mb-6">
-            <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="lg:col-span-2">
+          {/* Modern Search and Filters */}
+          <div className="mb-8">
+            {/* Search Bar and Filter Button in Single Row */}
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
                 <input
                   type="text"
                   placeholder="Search tasks..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
                 />
               </div>
-              <div>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
-                >
-                  <option value="">All Status</option>
-                  <option value="TODO">To Do</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="IN_REVIEW">In Review</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="BLOCKED">Blocked</option>
-                </select>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {getActiveFilterCount() > 0 && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-800">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Simple Filters Panel */}
+            {showFilters && (
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Status Filter */}
+                  <div>
+                    <select
+                      value={tempStatus}
+                      onChange={(e) => setTempStatus(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Status</option>
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="IN_REVIEW">In Review</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="BLOCKED">Blocked</option>
+                    </select>
+                  </div>
+
+                  {/* Priority Filter */}
+                  <div>
+                    <select
+                      value={tempPriority}
+                      onChange={(e) => setTempPriority(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Priority</option>
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                      <option value="CRITICAL">Critical</option>
+                    </select>
+                  </div>
+
+                  {/* User Filter */}
+                  <div>
+                    <select
+                      value={tempAssignedTo}
+                      onChange={(e) => setTempAssignedTo(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Users</option>
+                      {users.map((user: ExtendedUser) => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Apply and Reset buttons - Only show if temp values are different from applied values */}
+                    {hasTempChanges() && (
+                      <>
+                        <button
+                          onClick={applyFilters}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                        >
+                          Apply
+                        </button>
+                        <button
+                          onClick={resetTempFilters}
+                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                        >
+                          Reset
+                        </button>
+                      </>
+                    )}
+                    {/* Clear Filters Button - Only show if filters are applied */}
+                    {getActiveFilterCount() > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
-                >
-                  <option value="">All Priority</option>
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
-              </div>
-              <div>
-                <select
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
-                >
-                  <option value="">All Users</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </form>
+            )}
           </div>
 
           {/* Tasks Table */}
@@ -230,7 +319,7 @@ export default function TasksTable() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task) => (
+                {tasks.map((task: ExtendedTask) => (
                   <tr key={task.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -246,7 +335,7 @@ export default function TasksTable() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
                           <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                            <UserIcon className="h-4 w-4 text-gray-600" />
+                            <User className="h-4 w-4 text-gray-600" />
                           </div>
                         </div>
                         <div className="ml-3">
@@ -271,23 +360,36 @@ export default function TasksTable() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center">
-                        <CalendarIcon className="h-4 w-4 mr-1" />
+                        <Calendar className="h-4 w-4 mr-1" />
                         {format(new Date(task.endDate), 'MMM dd, yyyy')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => setEditingTask(task)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('Edit button clicked for task:', task.id)
+                            console.log('Event target:', e.target)
+                            console.log('Event currentTarget:', e.currentTarget)
+                            setEditingTask(task)
+                          }}
                           className="text-indigo-600 hover:text-indigo-900"
+                          type="button"
                         >
-                          <PencilIcon className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => setDeletingTask(task)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setDeletingTask(task)
+                          }}
                           className="text-red-600 hover:text-red-900"
+                          type="button"
                         >
-                          <TrashIcon className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -332,7 +434,7 @@ export default function TasksTable() {
           onClose={() => setEditingTask(null)}
           onSave={() => {
             setEditingTask(null)
-            fetchTasks()
+            // TanStack Query will automatically refetch
           }}
         />
       )}

@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get user from cookie (consistent with other admin APIs)
+    // Get user from cookie (custom auth)
     const userCookie = request.cookies.get('user')?.value
     let currentUser = null
     
@@ -19,7 +19,7 @@ export async function GET(
       }
     }
     
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -58,6 +58,13 @@ export async function GET(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
+    // Check if user is assigned to this task
+    if (task.assignedToId !== currentUser.id) {
+      return NextResponse.json({ 
+        error: 'You can only view tasks assigned to you'
+      }, { status: 403 })
+    }
+
     return NextResponse.json({ success: true, data: task })
   } catch (error) {
     console.error('Get task error:', error)
@@ -73,7 +80,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get user from cookie (consistent with other admin APIs)
+    // Get user from cookie (custom auth)
     const userCookie = request.cookies.get('user')?.value
     let currentUser = null
     
@@ -85,7 +92,7 @@ export async function PUT(
       }
     }
     
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -101,11 +108,10 @@ export async function PUT(
       category,
       tags,
       estimatedHours,
-      assignedToId,
       checklistItems
     } = body
 
-    // Get current task to track changes
+    // Get current task to check permissions
     const currentTask = await prisma.task.findUnique({
       where: { id },
       include: { assignedTo: true }
@@ -115,18 +121,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Validate assigned user if changing
-    if (assignedToId && assignedToId !== currentTask.assignedToId) {
-      const assignedUser = await prisma.user.findUnique({
-        where: { id: assignedToId }
-      })
-
-      if (!assignedUser) {
-        return NextResponse.json(
-          { error: 'Assigned user not found' },
-          { status: 400 }
-        )
-      }
+    // Check if user is assigned to this task
+    if (currentTask.assignedToId !== currentUser.id) {
+      return NextResponse.json({ 
+        error: 'You can only update tasks assigned to you'
+      }, { status: 403 })
     }
 
     const updateData: any = {
@@ -138,8 +137,7 @@ export async function PUT(
       ...(priority && { priority }),
       ...(category !== undefined && { category }),
       ...(tags && { tags }),
-      ...(estimatedHours !== undefined && { estimatedHours }),
-      ...(assignedToId && { assignedToId })
+      ...(estimatedHours !== undefined && { estimatedHours })
     }
 
     const task = await prisma.task.update({
@@ -154,25 +152,14 @@ export async function PUT(
       }
     })
 
-    // Create notification for assigned user about task update
-    await prisma.notification.create({
-      data: {
-        title: 'Task Updated',
-        message: `The task "${taskName || currentTask.taskName}" has been updated by admin`,
-        type: 'TASK_UPDATED',
-        userId: task.assignedToId,
-        taskId: task.id
-      }
-    })
-
-    // If task was reassigned to a different user, notify the new assignee
-    if (assignedToId && assignedToId !== currentTask.assignedToId) {
+    // Create notification for the admin who assigned the task
+    if (currentTask.createdById !== currentUser.id) {
       await prisma.notification.create({
         data: {
-          title: 'Task Assigned to You',
-          message: `You have been assigned the task "${taskName || currentTask.taskName}"`,
-          type: 'TASK_ASSIGNED',
-          userId: assignedToId,
+          title: 'Task Updated',
+          message: `The task "${taskName || currentTask.taskName}" has been updated by ${currentUser.name}`,
+          type: 'TASK_UPDATED',
+          userId: currentTask.createdById,
           taskId: task.id
         }
       })
@@ -183,62 +170,6 @@ export async function PUT(
     console.error('Update task error:', error)
     return NextResponse.json(
       { error: 'Failed to update task' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    // Get user from cookie (consistent with other admin APIs)
-    const userCookie = request.cookies.get('user')?.value
-    let currentUser = null
-    
-    if (userCookie) {
-      try {
-        currentUser = JSON.parse(userCookie)
-      } catch (error) {
-        console.error('Error parsing user cookie:', error)
-      }
-    }
-    
-    if (!currentUser || currentUser.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { id } = await params
-    const task = await prisma.task.findUnique({
-      where: { id },
-      include: { assignedTo: true }
-    })
-
-    if (!task) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
-    }
-
-    // Create notification for assigned user about task deletion
-    await prisma.notification.create({
-      data: {
-        title: 'Task Deleted',
-        message: `The task "${task.taskName}" has been deleted by admin`,
-        type: 'TASK_UPDATED',
-        userId: task.assignedToId,
-        taskId: null // Task is deleted, so no taskId
-      }
-    })
-
-    await prisma.task.delete({
-      where: { id }
-    })
-
-    return NextResponse.json({ success: true, message: 'Task deleted successfully' })
-  } catch (error) {
-    console.error('Delete task error:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete task' },
       { status: 500 }
     )
   }

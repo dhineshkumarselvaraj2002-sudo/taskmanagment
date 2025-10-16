@@ -9,20 +9,42 @@ import {
   EyeIcon,
   UserIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import EditUserModal from './EditUserModal'
 import DeleteUserModal from './DeleteUserModal'
+import { useToast } from '@/hooks/use-toast'
+import { useDebounce } from '@/hooks/use-debounce'
 
 export default function UsersTable() {
+  const { toast } = useToast()
   const [users, setUsers] = useState<ExtendedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
+  const [status, setStatus] = useState('')
+  const [dateRange, setDateRange] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null)
   const [deletingUser, setDeletingUser] = useState<ExtendedUser | null>(null)
+  
+  // Filter panel state
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Temporary filter values
+  const [tempSearch, setTempSearch] = useState('')
+  const [tempRole, setTempRole] = useState('')
+  const [tempStatus, setTempStatus] = useState('')
+  const [tempDateRange, setTempDateRange] = useState('')
+  
+  // Debounced search
+  const debouncedSearch = useDebounce(search, 2000)
 
   const fetchUsers = async () => {
     try {
@@ -30,8 +52,10 @@ export default function UsersTable() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10',
-        ...(search && { search }),
-        ...(role && { role })
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(role && { role }),
+        ...(status && { status }),
+        ...(dateRange && { dateRange })
       })
       
       const response = await fetch(`/api/admin/users?${params}`)
@@ -50,7 +74,66 @@ export default function UsersTable() {
 
   useEffect(() => {
     fetchUsers()
-  }, [page, search, role])
+  }, [page, debouncedSearch, role, status, dateRange])
+
+  // Initialize temp values when filters change
+  useEffect(() => {
+    setTempRole(role)
+    setTempStatus(status)
+    setTempDateRange(dateRange)
+  }, [role, status, dateRange])
+
+  // Filter functions
+  const hasTempChanges = () => {
+    return tempRole !== role || 
+           tempStatus !== status || 
+           tempDateRange !== dateRange
+  }
+
+  const applyFilters = () => {
+    setRole(tempRole)
+    setStatus(tempStatus)
+    setDateRange(tempDateRange)
+    setPage(1)
+  }
+
+  const resetTempFilters = () => {
+    setTempRole(role)
+    setTempStatus(status)
+    setTempDateRange(dateRange)
+  }
+
+  const clearFilters = () => {
+    setRole('')
+    setStatus('')
+    setDateRange('')
+    setTempRole('')
+    setTempStatus('')
+    setTempDateRange('')
+    setPage(1)
+  }
+
+  const clearTempFilters = () => {
+    setTempRole('')
+    setTempStatus('')
+    setTempDateRange('')
+  }
+
+  const getActiveFilterCount = () => {
+    let count = 0
+    if (role) count++
+    if (status) count++
+    if (dateRange) count++
+    return count
+  }
+
+  const getTempFilterCount = () => {
+    let count = 0
+    if (tempRole) count++
+    if (tempStatus) count++
+    if (tempDateRange) count++
+    return count
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,11 +148,29 @@ export default function UsersTable() {
       })
       
       if (response.ok) {
+        const deletedUser = users.find(user => user.id === userId)
         setUsers(users.filter(user => user.id !== userId))
         setDeletingUser(null)
+        
+        toast({
+          title: "User Deleted Successfully",
+          description: `${deletedUser?.name} has been removed from the system.`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Error Deleting User",
+          description: "Failed to delete user. Please try again.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Failed to delete user:', error)
+      toast({
+        title: "Error Deleting User",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -94,39 +195,102 @@ export default function UsersTable() {
     <>
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          {/* Search and Filters */}
+          {/* Modern Search and Filters */}
           <div className="mb-6">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+            {/* Search Bar and Filter Button in Single Row */}
+            <div className="flex gap-3 mb-4">
               <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
-                />
-              </div>
-              <div>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  suppressHydrationWarning
-                >
-                  <option value="">All Roles</option>
-                  <option value="ADMIN">Admin</option>
-                  <option value="USER">User</option>
-                </select>
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
               <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                suppressHydrationWarning
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
               >
-                Search
+                <FunnelIcon className="h-4 w-4 mr-2" />
+                Filters
+                {getActiveFilterCount() > 0 && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-800">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
               </button>
-            </form>
+            </div>
+
+            {/* Modern Filters Panel */}
+            {showFilters && (
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="flex gap-2 items-center">
+                  {/* Role Filter */}
+                  <div className="w-32">
+                    <select
+                      value={tempRole}
+                      onChange={(e) => setTempRole(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Roles</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="USER">User</option>
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="w-32">
+                    <select
+                      value={tempStatus}
+                      onChange={(e) => setTempStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div className="w-36">
+                    <select
+                      value={tempDateRange}
+                      onChange={(e) => setTempDateRange(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                      <option value="quarter">This Quarter</option>
+                      <option value="year">This Year</option>
+                    </select>
+                  </div>
+
+                  {/* Action Buttons - Only show if any filter option is selected */}
+                  {getTempFilterCount() > 0 && (
+                    <>
+                      <button
+                        onClick={applyFilters}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={clearTempFilters}
+                        className="inline-flex items-center px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Users Table */}

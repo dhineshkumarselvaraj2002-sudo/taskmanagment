@@ -52,16 +52,25 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          taskName: true,
+          taskDescription: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          priority: true,
+          category: true,
+          tags: true,
+          estimatedHours: true,
+          actualHours: true,
+          progress: true,
+          isRecurring: true,
+          isArchived: true,
+          createdAt: true,
+          updatedAt: true,
           assignedTo: { select: { id: true, name: true, email: true } },
-          createdBy: { select: { id: true, name: true, email: true } },
-          _count: {
-            select: {
-              comments: true,
-              attachments: true,
-              timeLogs: true
-            }
-          }
+          createdBy: { select: { id: true, name: true, email: true } }
         }
       }),
       prisma.task.count({ where })

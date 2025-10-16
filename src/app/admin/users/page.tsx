@@ -1,18 +1,24 @@
-import { Suspense } from 'react'
+'use client'
+
+import { Suspense, useState } from 'react'
 import UsersTable from '@/components/admin/UsersTable'
 import CreateUserModal from '@/components/admin/CreateUserModal'
-import { SearchParams } from '@/types'
 
-interface UsersPageProps {
-  searchParams: Promise<SearchParams>
-}
+export default function UsersPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
-export default async function UsersPage({ searchParams }: UsersPageProps) {
-  const params = await searchParams
-  const showCreateModal = params.action === 'create'
+  const handleCreateUserClose = () => {
+    setShowCreateModal(false)
+  }
+
+  const handleCreateUserSave = () => {
+    setShowCreateModal(false)
+    // Reload to show the new user
+    window.location.reload()
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-6">
@@ -22,7 +28,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 Manage user accounts and permissions
               </p>
             </div>
-            <CreateUserModal />
+            <div>
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Create User
+              </button>
+            </div>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -41,7 +54,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         </div>
       </div>
 
-      {showCreateModal && <CreateUserModal />}
+      {showCreateModal && (
+        <CreateUserModal 
+          onClose={handleCreateUserClose}
+          onSave={handleCreateUserSave}
+        />
+      )}
     </div>
   )
 }
