@@ -128,6 +128,10 @@ export default function TasksTable() {
   const handleDelete = async (task: ExtendedTask) => {
     try {
       await deleteTaskMutation.mutateAsync(task.id)
+      // Dispatch event to refresh notifications immediately
+      window.dispatchEvent(new CustomEvent('taskDeleted', { 
+        detail: { taskId: task.id, taskName: task.taskName } 
+      }))
       toast({
         title: "Task Deleted Successfully",
         description: `Task "${task.taskName}" has been deleted.`,

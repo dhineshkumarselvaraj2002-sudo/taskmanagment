@@ -471,18 +471,7 @@ export default function UserSidebar() {
           </nav>
           
           {/* Bottom Section */}
-          <div className={cn(
-            "mt-auto transition-all duration-300",
-            (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
-          )}>
-            {!(sidebarMode === 'collapsed' && !isExpanded) && (
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                <p className={`${fontClasses.nav} font-bold text-green-800 dark:text-green-200`}>
-                  #1 User Dashboard
-                </p>
-              </div>
-            )}
-          </div>
+
         </div>
       </div>
 

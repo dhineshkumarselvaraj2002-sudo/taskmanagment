@@ -39,6 +39,11 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
       
       if (data.success) {
         setSuccess(true)
+        // Dispatch event to refresh notifications immediately
+        console.log('CreateTaskModal - Dispatching taskCreated event')
+        window.dispatchEvent(new CustomEvent('taskCreated', { 
+          detail: { taskId: data.data.id, taskName: formData.taskName } 
+        }))
         setTimeout(() => {
           onClose()
           setSuccess(false)

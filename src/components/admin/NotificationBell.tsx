@@ -17,13 +17,47 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   useEffect(() => {
     fetchNotifications()
     
-    // Set up polling to check for new notifications every 30 seconds
+    // Set up polling to check for new notifications every 3 seconds for better responsiveness
     const interval = setInterval(() => {
       fetchNotifications()
-    }, 30000) // 30 seconds
+    }, 3000) // 3 seconds for better real-time experience
     
     return () => clearInterval(interval)
   }, [userId])
+
+  // Listen for custom events to refresh notifications immediately
+  useEffect(() => {
+    let refreshTimeout: NodeJS.Timeout
+
+    const handleNotificationRefresh = () => {
+      console.log('NotificationBell - Event triggered, refreshing notifications...')
+      // Debounce the refresh to prevent too many API calls
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout)
+      }
+      refreshTimeout = setTimeout(() => {
+        fetchNotifications()
+      }, 500) // 500ms debounce
+    }
+
+    // Listen for task-related events that should trigger notification refresh
+    window.addEventListener('taskCreated', handleNotificationRefresh)
+    window.addEventListener('taskUpdated', handleNotificationRefresh)
+    window.addEventListener('taskDeleted', handleNotificationRefresh)
+    window.addEventListener('taskStatusChanged', handleNotificationRefresh)
+    window.addEventListener('notificationRefresh', handleNotificationRefresh)
+
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout)
+      }
+      window.removeEventListener('taskCreated', handleNotificationRefresh)
+      window.removeEventListener('taskUpdated', handleNotificationRefresh)
+      window.removeEventListener('taskDeleted', handleNotificationRefresh)
+      window.removeEventListener('taskStatusChanged', handleNotificationRefresh)
+      window.removeEventListener('notificationRefresh', handleNotificationRefresh)
+    }
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -63,6 +97,28 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   const handleRefresh = () => {
     fetchNotifications()
   }
+
+  // Add a more aggressive refresh mechanism for better real-time experience
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications()
+      }
+    }
+
+    const handleFocus = () => {
+      fetchNotifications()
+    }
+
+    // Refresh notifications when user returns to the tab
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
 
   const markAsRead = async (notificationIds: string[]) => {
     try {

@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { 
   UserIcon, 
   ClockIcon, 
+  ExclamationTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
   EyeIcon
@@ -171,23 +172,37 @@ interface DeadlineData {
 export default function UserCalendarView() {
   const [deadlineData, setDeadlineData] = useState<DeadlineData[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedStatus, setSelectedStatus] = useState('')
-  const [selectedPriority, setSelectedPriority] = useState('')
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null)
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedPriority, setSelectedPriority] = useState('all')
+  const [searchValue, setSearchValue] = useState('')
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 })
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
     console.log('UserCalendarView mounted, fetching data...')
     fetchDeadlineData()
-  }, [selectedStatus, selectedPriority, currentDate])
+  }, [selectedStatus, selectedPriority, searchValue, currentDate])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout)
+      }
+    }
+  }, [hoverTimeout])
 
   const fetchDeadlineData = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      if (selectedStatus) params.append('status', selectedStatus)
-      if (selectedPriority) params.append('priority', selectedPriority)
+      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus)
+      if (selectedPriority && selectedPriority !== 'all') params.append('priority', selectedPriority)
+      if (searchValue) params.append('search', searchValue)
       
       // Get current month range based on selected date
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
@@ -208,15 +223,6 @@ export default function UserCalendarView() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Filter tasks based on selected filters
-  const getFilteredTasks = (tasks: any[]) => {
-    return tasks.filter(task => {
-      const statusMatch = !selectedStatus || task.status === selectedStatus
-      const priorityMatch = !selectedPriority || task.priority === selectedPriority
-      return statusMatch && priorityMatch
-    })
   }
 
   const getStatusIcon = (status: string) => {
@@ -277,51 +283,58 @@ export default function UserCalendarView() {
     }
   }
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    console.log('Mouse enter target:', target)
-    
-    const dateCell = target.closest('.rbc-date-cell')
-    console.log('Date cell found:', dateCell)
-    
-    if (!dateCell) return
-    
-    // Try multiple selectors to find the date
-    const dateText = dateCell.querySelector('.rbc-button-link')?.textContent || 
-                     dateCell.querySelector('button')?.textContent ||
-                     dateCell.textContent?.trim()
-    
-    console.log('Date text found:', dateText)
-    
-    if (!dateText) return
-    
-    const day = parseInt(dateText)
-    console.log('Parsed day:', day)
-    
-    if (isNaN(day)) return
-    
-    // Get current month and year from the calendar
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const dayStr = String(day).padStart(2, '0')
-    const dateString = `${year}-${month}-${dayStr}`
-    
-    console.log('Generated date string:', dateString)
-    console.log('Available deadline data:', deadlineData)
-    
+  const handleDateHover = (dateString: string, event: React.MouseEvent) => {
+    // Clear any existing timeout
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+
     const dateData = deadlineData.find(d => d.date === dateString)
-    console.log('Found date data:', dateData)
-    
     if (dateData && dateData.tasks.length > 0) {
-      console.log('Setting hovered date:', dateString)
-      setHoveredDate(dateString)
-      setHoverPosition({ x: e.clientX, y: e.clientY })
+      setSelectedDate(dateString)
+      
+      // Get the bounding rectangle of the hovered element
+      const rect = (event.target as HTMLElement).getBoundingClientRect()
+      const modalHeight = 100 // Compact modal height
+      const modalWidth = 240 // Compact modal width
+      
+      // Calculate position to ensure modal is above the date
+      const x = Math.max(10, Math.min(rect.left + (rect.width / 2) - (modalWidth / 2), window.innerWidth - modalWidth - 10))
+      const y = Math.max(10, rect.top - modalHeight - 10) // Position above with 10px gap
+      
+      setClickPosition({ x, y })
+      setIsModalOpen(true)
     }
   }
 
-  const handleMouseLeave = () => {
-    setHoveredDate(null)
+  const handleDateLeave = () => {
+    // Add longer delay before closing modal to allow moving to modal
+    const timeout = setTimeout(() => {
+      setIsModalOpen(false)
+      setSelectedDate(null)
+    }, 500) // 500ms delay to allow moving to modal
+    
+    setHoverTimeout(timeout)
+  }
+
+  const handleModalEnter = () => {
+    // Clear timeout when mouse enters modal
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+  }
+
+  const handleModalLeave = () => {
+    // Close modal when mouse leaves modal
+    setIsModalOpen(false)
+    setSelectedDate(null)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedDate(null)
   }
 
   if (loading) {
@@ -334,17 +347,45 @@ export default function UserCalendarView() {
     )
   }
 
-  // Navigation functions
+  // Navigation functions with smooth transitions
   const goToPreviousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const goToNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+      setIsTransitioning(false)
+    }, 150)
+  }
+
+  const goToPreviousYear = () => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1))
+      setIsTransitioning(false)
+    }, 150)
+  }
+
+  const goToNextYear = () => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1))
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const goToToday = () => {
-    setCurrentDate(new Date())
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentDate(new Date())
+      setIsTransitioning(false)
+    }, 150)
   }
 
   // Simple custom calendar component
@@ -362,80 +403,44 @@ export default function UserCalendarView() {
     const days = []
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     
-    // Add day headers
+    // Add modern day headers
     for (let i = 0; i < 7; i++) {
       days.push(
-        <div key={`header-${i}`} className="p-3 text-center text-sm font-semibold text-gray-700 bg-gray-50 border-b border-gray-200">
+        <div key={`header-${i}`} className="p-3 text-center text-sm font-bold text-slate-700 bg-gradient-to-r from-slate-100 to-slate-200 border-b border-slate-300/50">
           {dayNames[i]}
         </div>
       )
     }
     
-    // Add empty cells for days before the first day of the month
+    // Add modern empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2 h-20 border border-gray-200 bg-gray-50"></div>)
+      days.push(<div key={`empty-${i}`} className="p-2 h-20 border border-slate-200/50 bg-slate-50/30"></div>)
     }
     
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const dateData = deadlineData.find(d => d.date === dateString)
-      
-      // Apply client-side filtering to tasks
-      const filteredTasks = dateData ? getFilteredTasks(dateData.tasks) : []
-      const hasDeadlines = filteredTasks.length > 0
+      const hasDeadlines = dateData && dateData.tasks.length > 0
       const isToday = day === today.getDate()
       
       days.push(
         <div 
           key={day}
-          className={`p-2 h-20 border border-gray-200 cursor-pointer transition-all duration-200 ${
+          className={`p-2 h-20 border border-slate-200/50 transition-all duration-300 ${
             hasDeadlines 
-              ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 hover:shadow-md' 
-              : 'hover:bg-gray-50'
-          } ${isToday ? 'bg-yellow-100 border-yellow-300' : ''}`}
-          onMouseEnter={(e) => {
-            if (hasDeadlines) {
-              setHoveredDate(dateString)
-              setHoverPosition({ x: e.clientX, y: e.clientY })
-            }
-          }}
-          onMouseLeave={() => setHoveredDate(null)}
+              ? 'bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border-blue-200/60 hover:shadow-lg cursor-pointer hover:scale-105 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90' 
+              : 'hover:bg-slate-50/80 cursor-default hover:shadow-sm'
+          } ${isToday ? 'bg-gradient-to-br from-amber-100/90 to-yellow-100/90 border-amber-300/70 shadow-md' : ''}`}
+          onMouseEnter={(e) => handleDateHover(dateString, e)}
+          onMouseLeave={handleDateLeave}
         >
-          <div className="flex flex-col h-full space-y-1">
-            <div className={`text-sm font-semibold ${isToday ? 'text-yellow-800' : 'text-gray-900'}`}>
+          <div className="flex items-center justify-between h-full">
+            <span className={`text-sm font-bold ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
               {day}
-            </div>
+            </span>
             {hasDeadlines && (
-              <div className="space-y-1 flex-1">
-                {filteredTasks.slice(0, 2).map((task, index) => (
-                  <div key={index} className="space-y-1">
-                    {/* Task Name */}
-                    <div
-                      className={`px-2 py-1 rounded-md text-xs font-medium ${
-                        task.priority === 'CRITICAL'
-                          ? 'bg-red-100 text-red-700 border border-red-200'
-                          : task.priority === 'HIGH'
-                          ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                          : task.priority === 'MEDIUM'
-                          ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                          : 'bg-green-100 text-green-700 border border-green-200'
-                      }`}
-                    >
-                      {task.taskName.length > 10 ? task.taskName.substring(0, 10) + '...' : task.taskName}
-                    </div>
-                    {/* Status */}
-                    <div className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                      {task.status.replace('_', ' ')}
-                    </div>
-                  </div>
-                ))}
-                {filteredTasks.length > 2 && (
-                  <div className="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 text-center border border-gray-200">
-                    +{filteredTasks.length - 2} more
-                  </div>
-                )}
-              </div>
+              <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-sm"></div>
             )}
           </div>
         </div>
@@ -443,7 +448,9 @@ export default function UserCalendarView() {
     }
     
     return (
-      <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+      <div className={`grid grid-cols-7 gap-0 border border-slate-200/60 rounded-2xl overflow-hidden shadow-inner bg-gradient-to-br from-slate-50/50 to-white transition-all duration-300 ${
+        isTransitioning ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+      }`}>
         {days}
       </div>
     )
@@ -452,238 +459,232 @@ export default function UserCalendarView() {
   return (
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: calendarStyles }} />
-      {/* Filters */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-xl">
-        <div className="px-6 py-5">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Task Filters</h3>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-              <span className="text-sm text-gray-500">Active filters</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                Task Status
-              </label>
-              <select
-                id="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors text-sm"
-              >
-                <option value="">All Status</option>
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="IN_REVIEW">In Review</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="BLOCKED">Blocked</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-                Priority Level
-              </label>
-              <select
-                id="priority"
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-                className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors text-sm"
-              >
-                <option value="">All Priority</option>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Custom Calendar */}
-      <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+      
+      {/* Modern Professional Calendar */}
+      <div className="bg-white shadow-2xl rounded-3xl border border-gray-200/50 overflow-hidden backdrop-blur-sm">
         <div className="px-6 py-6">
-          {/* Calendar Header with Navigation */}
+          {/* Modern Calendar Header */}
           <div className="flex items-center justify-between mb-6">
-            <div className="space-y-3">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={goToPreviousMonth}
+                  className={`p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:shadow-md ${
+                    isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                  }`}
+                  title="Previous Month"
+                  disabled={isTransitioning}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h2 className={`text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent transition-all duration-300 ${
+                  isTransitioning ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+                }`}>
                   {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Hover over dates with deadlines to see task details
-                </p>
+                <button
+                  onClick={goToNextMonth}
+                  className={`p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:shadow-md ${
+                    isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                  }`}
+                  title="Next Month"
+                  disabled={isTransitioning}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
+              <p className="text-sm text-slate-600 font-medium">
+                Hover over dates with deadlines to view task details
+              </p>
               {/* Active Filters Display */}
-              {(selectedStatus || selectedPriority) && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedStatus && (
-                    <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+              {(selectedStatus !== 'all' || selectedPriority !== 'all' || searchValue) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {searchValue && (
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                      Search: "{searchValue}"
+                    </span>
+                  )}
+                  {selectedStatus !== 'all' && (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                       Status: {selectedStatus.replace('_', ' ')}
                     </span>
                   )}
-                  {selectedPriority && (
-                    <span className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full border border-purple-200">
-                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
+                  {selectedPriority !== 'all' && (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
                       Priority: {selectedPriority}
                     </span>
                   )}
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              {/* Year Navigation */}
               <button
-                onClick={goToPreviousMonth}
-                className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:shadow-sm"
-                title="Previous Month"
+                onClick={goToPreviousYear}
+                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Previous Year"
+                disabled={isTransitioning}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              {/* Month Navigation */}
+              <button
+                onClick={goToPreviousMonth}
+                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Previous Month"
+                disabled={isTransitioning}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
+              
+              {/* Today Button */}
               <button
                 onClick={goToToday}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:shadow-sm"
+                className={`px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                disabled={isTransitioning}
               >
                 Today
               </button>
+              
+              {/* Month Navigation */}
               <button
                 onClick={goToNextMonth}
-                className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:shadow-sm"
+                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
                 title="Next Month"
+                disabled={isTransitioning}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              
+              {/* Year Navigation */}
+              <button
+                onClick={goToNextYear}
+                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
+                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}
+                title="Next Year"
+                disabled={isTransitioning}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           </div>
-          <div className="h-[420px] overflow-auto">
+          <div className="h-[400px] overflow-auto">
             {deadlineData.length === 0 ? (
-              <div className="flex items-center justify-center h-full py-12">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center p-8">
+                  <div className="text-slate-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-gray-900">No Tasks Found</h3>
-                    <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                      No tasks with deadlines found for {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Try adjusting your filters or check if tasks have been assigned deadlines
-                    </p>
-                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">No Deadlines Found</h3>
+                  <p className="text-sm text-slate-600 mb-3">
+                    No tasks with deadlines found for {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Try adjusting your filters or check if tasks have been assigned deadlines
+                  </p>
                 </div>
               </div>
             ) : (
               renderCustomCalendar()
             )}
           </div>
-          
-          {/* Task Summary */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">Task Summary</h4>
-                  <p className="text-xs text-gray-500">Current month overview</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-gray-900">
-                  {deadlineData.reduce((total, dateGroup) => total + dateGroup.tasks.length, 0)}
-                </div>
-                <div className="text-xs text-gray-500">total tasks</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Professional Hover Popup */}
-      {hoveredDate && (
-        <div
-          className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-2xl transform transition-all duration-200 max-w-sm"
-          style={{
-            left: Math.min(hoverPosition.x + 15, window.innerWidth - 400),
-            top: Math.max(hoverPosition.y - 10, 10),
-            pointerEvents: 'none',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          }}
-        >
-          {/* Professional Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-xl px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-                <h4 className="text-sm font-semibold text-white">
-                  {format(new Date(hoveredDate), 'MMM dd, yyyy')}
-                </h4>
-              </div>
-              <div className="flex items-center space-x-2">
-                <ClockIcon className="h-4 w-4 text-white" />
-                <span className="text-sm text-white opacity-90 font-medium">
-                  {getFilteredTasks(deadlineData.find(d => d.date === hoveredDate)?.tasks || []).length} tasks
-                </span>
+      {/* Task Details Modal */}
+      {isModalOpen && selectedDate && (
+        <div className="fixed inset-0 z-50">
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-black/30 transition-opacity"
+            onClick={closeModal}
+          ></div>
+
+          {/* Professional compact modal positioned above the hovered date */}
+          <div 
+            className="fixed bg-white/98 backdrop-blur-md rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-60 border border-slate-200/60"
+            style={{
+              left: clickPosition.x,
+              top: clickPosition.y,
+              zIndex: 60
+            }}
+            onMouseEnter={handleModalEnter}
+            onMouseLeave={handleModalLeave}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {format(new Date(selectedDate), 'MMM dd, yyyy')}
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    {deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0} tasks due
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Professional Content */}
-          <div className="p-4 max-h-80 overflow-y-auto">
-            <div className="space-y-3">
-              {getFilteredTasks(deadlineData.find(d => d.date === hoveredDate)?.tasks || [])
-                .map((task, index) => (
-                  <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200 hover:shadow-sm transition-shadow">
-                    {/* Task Name */}
-                    <div className="flex items-start justify-between mb-2">
-                      <h5 className="text-sm font-semibold text-gray-900 truncate flex-1 mr-3">
-                        {task.taskName}
-                      </h5>
-                      <div className="flex items-center space-x-1">
-                        {getStatusIcon(task.status)}
+
+            {/* Content */}
+            <div className="bg-white px-3 py-3">
+              <div className="space-y-2">
+                {deadlineData
+                  .find(d => d.date === selectedDate)
+                  ?.tasks.slice(0, 3).map((task, index) => (
+                    <div key={index} className="bg-slate-50 rounded-lg p-2 border border-slate-200/50">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-slate-900 truncate">
+                            {task.taskName}
+                          </h4>
+                          <div className="flex items-center space-x-1 mt-1">
+                            <UserIcon className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                            <span className="text-xs text-slate-600 truncate">
+                              {task.assignedTo?.name || 'Unassigned'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1 ml-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(task.status)}`}>
+                            {task.status.replace('_', ' ')}
+                          </span>
+                          {getStatusIcon(task.status)}
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* Status and Priority - Professional Layout */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getPriorityBadgeColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </div>
-                    
-                    {/* Professional Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 font-medium">Progress</span>
-                        <span className="text-xs text-gray-700 font-semibold">{task.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
+                  ))}
+                {(deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0) > 3 && (
+                  <div className="text-xs text-slate-500 text-center py-1 bg-slate-100 rounded-lg">
+                    +{(deadlineData.find(d => d.date === selectedDate)?.tasks.length || 0) - 3} more tasks
                   </div>
-                ))}
+                )}
+              </div>
             </div>
+
           </div>
         </div>
       )}

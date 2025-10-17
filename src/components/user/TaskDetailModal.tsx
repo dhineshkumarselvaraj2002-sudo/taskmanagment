@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,13 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus>(task?.status || 'TODO')
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
+
+  // Update selectedStatus when task changes
+  useEffect(() => {
+    if (task) {
+      setSelectedStatus(task.status)
+    }
+  }, [task])
 
   if (!isOpen || !task) return null
 
@@ -84,6 +91,13 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
   const handleStatusUpdate = async () => {
     if (selectedStatus === task.status) return
 
+    console.log('🔄 Status Update Debug:', {
+      currentStatus: task.status,
+      selectedStatus,
+      isUpdating,
+      taskId: task.id
+    })
+
     setIsUpdating(true)
     try {
       const response = await fetch(`/api/user/tasks/${task.id}/status`, {
@@ -98,6 +112,11 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
         const data = await response.json()
         if (data.success) {
           onStatusUpdate?.(task.id, selectedStatus)
+          // Dispatch event to refresh notifications immediately
+          console.log('TaskDetailModal - Dispatching taskStatusChanged event')
+          window.dispatchEvent(new CustomEvent('taskStatusChanged', { 
+            detail: { taskId: task.id, newStatus: selectedStatus } 
+          }))
           toast({
             title: "Success!",
             description: "Task status updated successfully!",
@@ -143,21 +162,41 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
   const isOverdue = new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">{task.taskName}</h2>
-            <p className="text-gray-600">Task Details</p>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Modern backdrop with enhanced blur */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-300" 
+        onClick={onClose}
+      />
+      
+      {/* Modern Modal Content with glassmorphism */}
+      <div 
+        className="relative transform overflow-hidden rounded-2xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-300 w-full max-w-4xl max-h-[95vh] flex flex-col animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modern Header with gradient */}
+        <div className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 px-8 pt-8 pb-6 flex-shrink-0 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {task.taskName}
+              </h2>
+              <p className="text-gray-600">Task Details</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="group rounded-xl p-3 text-gray-400 hover:text-gray-600 hover:bg-white/80 transition-all duration-200 hover:shadow-lg"
+            >
+              <X className="h-5 w-5 group-hover:scale-110 transition-transform" />
+            </button>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        {/* Modern Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-8">
+          <div className="py-8">
+            <div className="max-w-2xl mx-auto space-y-6">
           {/* Status and Priority */}
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2">
@@ -297,27 +336,95 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
                   </Label>
                   <Select 
                     value={selectedStatus} 
-                    onValueChange={(value: TaskStatus) => setSelectedStatus(value)}
+                    onValueChange={(value: TaskStatus) => {
+                      console.log('📋 Dropdown Selection Debug:', {
+                        previousStatus: selectedStatus,
+                        newStatus: value,
+                        taskId: task.id
+                      })
+                      setSelectedStatus(value)
+                    }}
                   >
-                    <SelectTrigger id="status-select" className="w-full">
-                      <SelectValue placeholder="Select new status" />
+                    <SelectTrigger 
+                      id="status-select" 
+                      className="w-full h-12 bg-white border-2 border-gray-200 hover:border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-sm rounded-lg transition-all duration-200"
+                    >
+                      <SelectValue placeholder="Select new status">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(selectedStatus)}
+                          <span className="font-medium">{selectedStatus.replace('_', ' ')}</span>
+                        </div>
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODO">To Do</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                      <SelectItem value="COMPLETED">Completed</SelectItem>
-                      <SelectItem value="BLOCKED">Blocked</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    <SelectContent className="z-[10000] bg-white border border-gray-200 rounded-lg shadow-lg">
+                      <SelectItem 
+                        value="TODO" 
+                        className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                          <span className="font-medium">To Do</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem 
+                        value="IN_PROGRESS" 
+                        className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <span className="font-medium">In Progress</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem 
+                        value="IN_REVIEW" 
+                        className="cursor-pointer hover:bg-yellow-50 focus:bg-yellow-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                          <span className="font-medium">In Review</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem 
+                        value="COMPLETED" 
+                        className="cursor-pointer hover:bg-green-50 focus:bg-green-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          <span className="font-medium">Completed</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem 
+                        value="BLOCKED" 
+                        className="cursor-pointer hover:bg-red-50 focus:bg-red-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                          <span className="font-medium">Blocked</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem 
+                        value="CANCELLED" 
+                        className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 py-3 px-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                          <span className="font-medium">Cancelled</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Button 
                   onClick={handleStatusUpdate}
                   disabled={selectedStatus === task.status || isUpdating}
-                  className="mt-6"
+                  className={`mt-6 transition-all duration-200 ${
+                    selectedStatus !== task.status 
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  {isUpdating ? 'Updating...' : 'Update Status'}
+                  {isUpdating ? 'Updating...' : 
+                   selectedStatus !== task.status ? 'Update Status' : 'No Changes'}
                 </Button>
               </div>
             </CardContent>
@@ -347,13 +454,19 @@ export default function TaskDetailModal({ isOpen, onClose, task, onStatusUpdate 
               </div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <Button variant="outline" onClick={onClose}>
+        {/* Modern Footer */}
+        <div className="bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm border-t border-gray-200/50 px-8 py-6 flex justify-end items-center flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3 text-sm font-semibold text-gray-600 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
+          >
             Close
-          </Button>
+          </button>
         </div>
       </div>
     </div>

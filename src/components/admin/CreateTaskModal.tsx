@@ -133,7 +133,11 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
 
     // Start the mutation and wait for it to complete
     createTaskMutation.mutate(formData, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        // Dispatch event to refresh notifications immediately
+        window.dispatchEvent(new CustomEvent('taskCreated', { 
+          detail: { taskId: data.id, taskName: formData.taskName } 
+        }))
         // Show success toast and close modal only after successful creation
         toast({
           title: "Task Created Successfully",

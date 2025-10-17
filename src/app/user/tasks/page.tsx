@@ -7,21 +7,26 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Filter, Search, Calendar, Clock, User, Eye, Edit, Trash2, CheckCircle, AlertCircle, XCircle, Play } from 'lucide-react'
+import { Filter, Search, Calendar, Clock, User, Eye, Edit, Trash2, CheckCircle, AlertCircle, XCircle, Play, X } from 'lucide-react'
 import TaskDetailModal from '@/components/user/TaskDetailModal'
 import { ExtendedTask, TaskStatus } from '@/types'
 
 export default function UserTasksPage() {
   // State for filtering and search
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  const [priorityFilter, setPriorityFilter] = useState('ALL')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
   const [sortBy, setSortBy] = useState('dueDate')
   const [showFilters, setShowFilters] = useState(false)
   
   // Advanced filter states
-  const [dateRange, setDateRange] = useState('ALL')
+  const [dateRange, setDateRange] = useState('')
   const [overdueOnly, setOverdueOnly] = useState(false)
+  
+  // Temporary filter values (not applied until Apply button is clicked)
+  const [tempStatusFilter, setTempStatusFilter] = useState('')
+  const [tempPriorityFilter, setTempPriorityFilter] = useState('')
+  const [tempDateRange, setTempDateRange] = useState('')
 
   const [tasks, setTasks] = useState<ExtendedTask[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,22 +65,109 @@ export default function UserTasksPage() {
     )
   }
 
+  // Filter helper functions
+  const getActiveFilterCount = () => {
+    let count = 0
+    if (statusFilter) count++
+    if (priorityFilter) count++
+    if (dateRange) count++
+    if (overdueOnly) count++
+    return count
+  }
+
+  const hasTempChanges = () => {
+    return tempStatusFilter !== statusFilter || 
+           tempPriorityFilter !== priorityFilter || 
+           tempDateRange !== dateRange
+  }
+
+  const applyFilters = () => {
+    setStatusFilter(tempStatusFilter)
+    setPriorityFilter(tempPriorityFilter)
+    setDateRange(tempDateRange)
+  }
+
+  const resetTempFilters = () => {
+    setTempStatusFilter(statusFilter)
+    setTempPriorityFilter(priorityFilter)
+    setTempDateRange(dateRange)
+  }
+
+  const clearFilters = () => {
+    setStatusFilter('')
+    setPriorityFilter('')
+    setDateRange('')
+    setTempStatusFilter('')
+    setTempPriorityFilter('')
+    setTempDateRange('')
+    setOverdueOnly(false)
+    setSearchTerm('')
+  }
+
+  // Initialize temp values when filter panel opens
+  useEffect(() => {
+    if (showFilters) {
+      setTempStatusFilter(statusFilter)
+      setTempPriorityFilter(priorityFilter)
+      setTempDateRange(dateRange)
+    }
+  }, [showFilters, statusFilter, priorityFilter, dateRange])
+
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
+    console.log('🔍 Search Debug:', {
+      searchTerm,
+      tasksCount: tasks.length,
+      tasks: tasks.map(t => ({ id: t.id, name: t.taskName, status: t.status }))
+    })
+    
     let filtered = tasks.filter(task => {
-      const matchesSearch = task.taskName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           task.taskDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (task.tags && task.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase())))
+      // Enhanced search functionality
+      const searchLower = searchTerm.toLowerCase().trim()
       
-      const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter
-      const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter
+      // Debug individual task search
+      if (searchLower) {
+        const nameMatch = task.taskName?.toLowerCase().includes(searchLower)
+        const descMatch = task.taskDescription?.toLowerCase().includes(searchLower)
+        const categoryMatch = task.category?.toLowerCase().includes(searchLower)
+        const assignedMatch = task.assignedTo?.name?.toLowerCase().includes(searchLower)
+        const createdMatch = task.createdBy?.name?.toLowerCase().includes(searchLower)
+        const tagsMatch = task.tags && task.tags.some((tag: string) => tag.toLowerCase().includes(searchLower))
+        
+        console.log(`🔍 Task "${task.taskName}" search results:`, {
+          searchTerm: searchLower,
+          nameMatch,
+          descMatch,
+          categoryMatch,
+          assignedMatch,
+          createdMatch,
+          tagsMatch,
+          taskName: task.taskName,
+          taskDescription: task.taskDescription,
+          category: task.category,
+          assignedTo: task.assignedTo?.name,
+          createdBy: task.createdBy?.name,
+          tags: task.tags
+        })
+      }
+      
+      const matchesSearch = !searchLower || 
+                           (task.taskName?.toLowerCase().includes(searchLower)) ||
+                           (task.taskDescription?.toLowerCase().includes(searchLower)) ||
+                           (task.category?.toLowerCase().includes(searchLower)) ||
+                           (task.assignedTo?.name?.toLowerCase().includes(searchLower)) ||
+                           (task.createdBy?.name?.toLowerCase().includes(searchLower)) ||
+                           (task.tags && task.tags.some((tag: string) => tag.toLowerCase().includes(searchLower)))
+      
+      const matchesStatus = !statusFilter || task.status === statusFilter
+      const matchesPriority = !priorityFilter || task.priority === priorityFilter
       
       // Date range filter
       const taskDate = new Date(task.endDate)
       const now = new Date()
       let matchesDateRange = true
       
-      if (dateRange !== 'ALL') {
+      if (dateRange) {
         switch (dateRange) {
           case 'TODAY':
             matchesDateRange = taskDate.toDateString() === now.toDateString()
@@ -90,6 +182,9 @@ export default function UserTasksPage() {
             break
           case 'OVERDUE':
             matchesDateRange = taskDate < now && task.status !== 'COMPLETED'
+            break
+          case 'UPCOMING':
+            matchesDateRange = taskDate > now
             break
         }
       }
@@ -117,6 +212,13 @@ export default function UserTasksPage() {
       }
     })
 
+    console.log('🔍 Final filtered results:', {
+      originalCount: tasks.length,
+      filteredCount: filtered.length,
+      searchTerm,
+      filteredTasks: filtered.map(t => ({ id: t.id, name: t.taskName }))
+    })
+    
     return filtered
   }, [tasks, searchTerm, statusFilter, priorityFilter, sortBy, dateRange, overdueOnly])
 
@@ -161,258 +263,242 @@ export default function UserTasksPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ml-6 mt-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">My Tasks</h1>
           <p className="text-gray-600">Manage and track your assigned tasks</p>
         </div>
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-4 h-4" />
-            Advanced Filters
-            {(statusFilter !== 'ALL' || priorityFilter !== 'ALL' || dateRange !== 'ALL' || overdueOnly) && (
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
-                {[statusFilter !== 'ALL', priorityFilter !== 'ALL', dateRange !== 'ALL', overdueOnly].filter(Boolean).length}
-              </span>
-            )}
-          </Button>
-        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{tasks.length}</p>
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Total Tasks
+                  </p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {tasks.length}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {tasks.filter(task => task.status === 'COMPLETED').length}
-                </p>
+            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Completed
+                  </p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {tasks.filter(task => task.status === 'COMPLETED').length}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Play className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {tasks.filter(task => task.status === 'IN_PROGRESS').length}
-                </p>
+            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                  <Play className="h-4 w-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    In Progress
+                  </p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {tasks.filter(task => task.status === 'IN_PROGRESS').length}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {tasks.filter(task => 
-                    new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
-                  ).length}
-                </p>
+            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Overdue
+                  </p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {tasks.filter(task => 
+                      new Date(task.endDate) < new Date() && task.status !== 'COMPLETED'
+                    ).length}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Advanced Filter Panel */}
-      {showFilters && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Advanced Filters</CardTitle>
-            <CardDescription>Refine your task list with advanced filtering options</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Date Range Filter */}
-              <div className="space-y-2">
-                <Label htmlFor="dateRange">Date Range</Label>
-                <Select value={dateRange} onValueChange={setDateRange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select date range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Time</SelectItem>
-                    <SelectItem value="TODAY">Today</SelectItem>
-                    <SelectItem value="THIS_WEEK">This Week</SelectItem>
-                    <SelectItem value="THIS_MONTH">This Month</SelectItem>
-                    <SelectItem value="OVERDUE">Overdue Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Overdue Only Toggle */}
-              <div className="space-y-2">
-                <Label htmlFor="overdueOnly">Show Only Overdue</Label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="overdueOnly"
-                    checked={overdueOnly}
-                    onChange={(e) => setOverdueOnly(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <Label htmlFor="overdueOnly" className="text-sm text-gray-600">
-                    Show only overdue tasks
-                  </Label>
-                </div>
-              </div>
-
-              {/* Clear All Filters */}
-              <div className="space-y-2">
-                <Label>Actions</Label>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSearchTerm('')
-                    setStatusFilter('ALL')
-                    setPriorityFilter('ALL')
-                    setDateRange('ALL')
-                    setOverdueOnly(false)
-                    setSortBy('dueDate')
-                  }}
-                  className="w-full flex items-center gap-2"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Clear All Filters
-                </Button>
-              </div>
-
-              {/* Filter Summary */}
-              <div className="space-y-2">
-                <Label>Active Filters</Label>
-                <div className="text-sm text-gray-600">
-                  {[statusFilter !== 'ALL' && `Status: ${statusFilter}`,
-                    priorityFilter !== 'ALL' && `Priority: ${priorityFilter}`,
-                    dateRange !== 'ALL' && `Date: ${dateRange}`,
-                    overdueOnly && 'Overdue Only'
-                  ].filter(Boolean).join(', ') || 'No filters applied'}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+ 
 
       {/* Enhanced Search and Filters */}
-      <Card>
+      <Card className="border-0 shadow-none">
         <CardHeader>
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
-              <CardTitle>Task List ({filteredTasks.length} tasks)</CardTitle>
+              <CardTitle>
+                Task List ({filteredTasks.length} tasks)
+                {searchTerm && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    - Search results for "{searchTerm}"
+                  </span>
+                )}
+              </CardTitle>
               <CardDescription>Manage and track your assigned tasks</CardDescription>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Search tasks, descriptions, or tags..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-              
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Status</SelectItem>
-                  <SelectItem value="TODO">To Do</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="BLOCKED">Blocked</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Priority Filter */}
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Priority</SelectItem>
-                  <SelectItem value="CRITICAL">Critical</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="LOW">Low</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="title">Title</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Clear Filters Button */}
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm('')
-                  setStatusFilter('ALL')
-                  setPriorityFilter('ALL')
-                  setDateRange('ALL')
-                  setOverdueOnly(false)
-                  setSortBy('dueDate')
-                }}
-                className="flex items-center gap-2"
-              >
-                <XCircle className="w-4 h-4" />
-                Clear
-              </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Modern Search and Filters */}
+          <div className="mb-8">
+            {/* Search Bar and Filter Button in Single Row */}
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks by name, description, category, or tags..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  {/* Debug: Show current search term */}
+                  {searchTerm && (
+                    <div className="absolute -bottom-6 left-0 text-xs text-gray-500">
+                      Searching for: "{searchTerm}"
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {getActiveFilterCount() > 0 && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-800">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Simple Filters Panel */}
+            {showFilters && (
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={tempStatusFilter}
+                      onChange={(e) => setTempStatusFilter(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Status</option>
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="IN_REVIEW">In Review</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="BLOCKED">Blocked</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+
+                  {/* Priority Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <select
+                      value={tempPriorityFilter}
+                      onChange={(e) => setTempPriorityFilter(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Priority</option>
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                      <option value="CRITICAL">Critical</option>
+                    </select>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                    <select
+                      value={tempDateRange}
+                      onChange={(e) => setTempDateRange(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Dates</option>
+                      <option value="TODAY">Today</option>
+                      <option value="THIS_WEEK">This Week</option>
+                      <option value="THIS_MONTH">This Month</option>
+                      <option value="OVERDUE">Overdue</option>
+                      <option value="UPCOMING">Upcoming</option>
+                    </select>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-end gap-2">
+                    {/* Apply and Reset buttons - Only show if temp values are different from applied values */}
+                    {hasTempChanges() && (
+                      <>
+                        <button
+                          onClick={applyFilters}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                        >
+                          Apply
+                        </button>
+                        <button
+                          onClick={resetTempFilters}
+                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                        >
+                          Reset
+                        </button>
+                      </>
+                    )}
+                    {/* Clear Filters Button - Only show if filters are applied */}
+                    {getActiveFilterCount() > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             {loading ? (
               <div className="text-center py-8">
@@ -422,27 +508,42 @@ export default function UserTasksPage() {
             ) : filteredTasks.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-                <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchTerm ? 'No tasks found matching your search' : 'No tasks found'}
+                </h3>
+                <p className="text-gray-600">
+                  {searchTerm 
+                    ? `No tasks match "${searchTerm}". Try a different search term or clear the search.`
+                    : 'Try adjusting your filter criteria'
+                  }
+                </p>
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                  >
+                    Clear Search
+                  </button>
+                )}
               </div>
             ) : (
               filteredTasks.map((task) => (
-                <div key={task.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all duration-200 bg-white">
+                <div key={task.id} className="rounded-lg p-6 hover:shadow-md transition-all duration-200 bg-white border-0">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       {/* Task Header */}
                       <div className="flex items-center gap-3 mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">{task.taskName}</h3>
-                        <Badge className={`${getStatusColor(task.status)} border flex items-center gap-1 px-3 py-1`}>
+                        <Badge className={`${getStatusColor(task.status)} border-0 flex items-center gap-1 px-3 py-1`}>
                           {getStatusIcon(task.status)}
                           {task.status.replace('_', ' ')}
                         </Badge>
-                        <Badge className={`${getPriorityColor(task.priority)} border flex items-center gap-1 px-3 py-1`}>
+                        <Badge className={`${getPriorityColor(task.priority)} border-0 flex items-center gap-1 px-3 py-1`}>
                           {getPriorityIcon(task.priority)}
                           {task.priority}
                         </Badge>
                         {new Date(task.endDate) < new Date() && task.status !== 'COMPLETED' && (
-                          <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1 px-3 py-1">
+                          <Badge className="bg-red-100 text-red-800 border-0 flex items-center gap-1 px-3 py-1">
                             <AlertCircle className="w-4 h-4" />
                             Overdue
                           </Badge>
@@ -492,7 +593,7 @@ export default function UserTasksPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-700">Current Status:</span>
-                            <Badge className={`${getStatusColor(task.status)} border flex items-center gap-1`}>
+                            <Badge className={`${getStatusColor(task.status)} border-0 flex items-center gap-1`}>
                               {getStatusIcon(task.status)}
                               {task.status.replace('_', ' ')}
                             </Badge>
@@ -510,7 +611,7 @@ export default function UserTasksPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex justify-center items-center ml-4">
                       <Button 
                         variant="outline" 
                         size="sm" 

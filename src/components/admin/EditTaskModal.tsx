@@ -134,7 +134,11 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
     // Start the mutation and wait for it to complete
     const mutation = isUserModal ? updateUserTaskMutation : updateTaskMutation
     mutation.mutate({ id: task.id, taskData: formData }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        // Dispatch event to refresh notifications immediately
+        window.dispatchEvent(new CustomEvent('taskUpdated', { 
+          detail: { taskId: data.id, taskName: formData.taskName } 
+        }))
         // Show success toast and close modal only after successful update
         toast({
           title: "Task Updated Successfully",
