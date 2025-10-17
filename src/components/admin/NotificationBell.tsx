@@ -15,46 +15,80 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchNotifications()
-    
-    // Set up polling to check for new notifications every 3 seconds for better responsiveness
-    const interval = setInterval(() => {
-      fetchNotifications()
-    }, 3000) // 3 seconds for better real-time experience
-    
-    return () => clearInterval(interval)
+    // Only fetch notifications when component mounts
+    fetchNotifications(true)
   }, [userId])
 
-  // Listen for custom events to refresh notifications immediately
+  // Set up real-time notification stream
   useEffect(() => {
-    let refreshTimeout: NodeJS.Timeout
+    let eventSource: EventSource | null = null
 
-    const handleNotificationRefresh = () => {
-      console.log('NotificationBell - Event triggered, refreshing notifications...')
-      // Debounce the refresh to prevent too many API calls
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout)
+    const setupEventSource = () => {
+      try {
+        eventSource = new EventSource('/api/notifications/stream')
+        
+        eventSource.onopen = () => {
+          console.log('NotificationBell - Real-time connection established')
+        }
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            console.log('NotificationBell - Real-time notification received:', data)
+            
+            if (data.type === 'notification' && data.data) {
+              // Add new notification to the list
+              setNotifications(prev => [data.data, ...prev])
+              setUnreadCount(prev => prev + 1)
+              
+              // Show browser notification if permission is granted
+              if (Notification.permission === 'granted') {
+                new Notification(data.data.title, {
+                  body: data.data.message,
+                  icon: '/favicon.ico'
+                })
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing real-time notification:', error)
+          }
+        }
+
+        eventSource.onerror = (error) => {
+          console.error('NotificationBell - Real-time connection error:', error)
+          // Attempt to reconnect after 5 seconds
+          setTimeout(() => {
+            if (eventSource) {
+              eventSource.close()
+              setupEventSource()
+            }
+          }, 5000)
+        }
+      } catch (error) {
+        console.error('Failed to setup real-time notifications:', error)
       }
-      refreshTimeout = setTimeout(() => {
-        fetchNotifications()
-      }, 500) // 500ms debounce
     }
 
-    // Listen for task-related events that should trigger notification refresh
-    window.addEventListener('taskCreated', handleNotificationRefresh)
-    window.addEventListener('taskUpdated', handleNotificationRefresh)
-    window.addEventListener('taskDeleted', handleNotificationRefresh)
-    window.addEventListener('taskStatusChanged', handleNotificationRefresh)
+    setupEventSource()
+
+    return () => {
+      if (eventSource) {
+        eventSource.close()
+      }
+    }
+  }, [])
+
+  // Listen for custom events to refresh notifications only when explicitly triggered
+  useEffect(() => {
+    const handleNotificationRefresh = () => {
+      console.log('NotificationBell - Manual refresh triggered')
+      fetchNotifications(true) // Only refresh when explicitly requested
+    }
+
+    // Listen for explicit notification refresh events
     window.addEventListener('notificationRefresh', handleNotificationRefresh)
 
     return () => {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout)
-      }
-      window.removeEventListener('taskCreated', handleNotificationRefresh)
-      window.removeEventListener('taskUpdated', handleNotificationRefresh)
-      window.removeEventListener('taskDeleted', handleNotificationRefresh)
-      window.removeEventListener('taskStatusChanged', handleNotificationRefresh)
       window.removeEventListener('notificationRefresh', handleNotificationRefresh)
     }
   }, [])
@@ -71,54 +105,40 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (showLoading = true) => {
     try {
-      setLoading(true)
-      console.log('NotificationBell - Fetching notifications for user:', userId)
+      if (showLoading) {
+        setLoading(true)
+      }
+      console.log('NotificationBell - Manual API call for user:', userId)
       const response = await fetch('/api/user/notifications?limit=20')
       const data = await response.json()
-      
-      console.log('NotificationBell - API response:', data)
       
       if (data.success) {
         setNotifications(data.data)
         setUnreadCount(data.unreadCount)
-        console.log('NotificationBell - Notifications set:', data.data.length, 'Unread:', data.unreadCount)
+        console.log('NotificationBell - Notifications updated:', data.data.length, 'Unread:', data.unreadCount)
       } else {
         console.error('NotificationBell - API error:', data.error)
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 
   const handleRefresh = () => {
-    fetchNotifications()
+    console.log('NotificationBell - Manual refresh button clicked')
+    fetchNotifications(true)
   }
 
-  // Add a more aggressive refresh mechanism for better real-time experience
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications()
-      }
-    }
+  const handleDropdownToggle = () => {
+    setIsOpen(!isOpen)
+  }
 
-    const handleFocus = () => {
-      fetchNotifications()
-    }
-
-    // Refresh notifications when user returns to the tab
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [])
 
   const markAsRead = async (notificationIds: string[]) => {
     try {
@@ -176,8 +196,9 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
     }
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    return dateObj.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -201,12 +222,12 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
     <div className="relative notification-dropdown">
       {/* Notification Bell */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg focus:outline-none"
+        onClick={handleDropdownToggle}
+        className="relative p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 hover:bg-stone-200 dark:hover:bg-gray-700"
       >
         <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-black text-white text-xs rounded-full flex items-center justify-center font-medium">
+          <span className="absolute -top-1 -right-1 h-5 w-5 bg-black text-white text-xs rounded-full flex items-center justify-center font-medium animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -214,57 +235,61 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
 
       {/* Modern Notification Modal */}
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 notification-dropdown">
-          {/* Compact Header */}
-          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Bell className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
-              {unreadCount > 0 && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">({unreadCount})</span>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={handleRefresh}
-                className="p-1 text-gray-500 dark:text-gray-400 rounded"
-                title="Refresh"
-              >
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              {unreadCount > 0 && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 md:w-80 lg:w-80 xl:w-96 max-w-[calc(100vw-2rem)] sm:max-w-none bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 notification-dropdown transform transition-all duration-200 ease-out">
+          {/* Header */}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                <Bell className="h-4 w-4 text-gray-600 dark:text-gray-300 flex-shrink-0" />
+                <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate pt-3">Notifications</p>
+                
+              </div>
+              <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                 <button
-                  onClick={markAllAsRead}
-                  className="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded"
+                  onClick={handleRefresh}
+                  className="p-1.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-stone-200 dark:hover:bg-gray-700 rounded-lg transition-colors touch-manipulation"
+                  title="Refresh"
                 >
-                  Mark all
+                  <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </button>
-              )}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 text-gray-500 dark:text-gray-400 rounded"
-              >
-                <X className="h-3 w-3" />
-              </button>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="px-2 sm:px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-stone-200 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors touch-manipulation"
+                  >
+                    <span className="hidden sm:inline">Mark all</span>
+                    <span className="sm:hidden">All</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-stone-200 dark:hover:bg-gray-700 rounded-lg transition-colors touch-manipulation"
+                >
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Compact Notifications List */}
-          <div className="max-h-64 overflow-y-auto">
+          {/* Notifications List */}
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
+              <div className="flex items-center justify-center py-8 sm:py-12">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-transparent"></div>
                   <span className="text-xs text-gray-600 dark:text-gray-400">Loading...</span>
                 </div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 px-4">
-                <Bell className="h-6 w-6 text-gray-400 mb-2" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  No notifications
+              <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
+                <Bell className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-3" />
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center">
+                  No notifications yet
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1">
+                  You'll see updates here when they arrive
                 </p>
               </div>
             ) : (
@@ -273,15 +298,15 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`p-3 cursor-pointer ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 cursor-pointer transition-colors hover:bg-stone-200 dark:hover:bg-gray-700 touch-manipulation ${
                       notification.status === 'UNREAD' 
-                        ? 'bg-gray-50 dark:bg-gray-700 border-l-2 border-black dark:border-white' 
+                        ? 'bg-stone-200 dark:bg-gray-700 border-l-4 border-black dark:border-white' 
                         : ''
                     }`}
                   >
-                    <div className="flex items-start space-x-2">
+                    <div className="flex items-start space-x-2 sm:space-x-3">
                       <div className="flex-shrink-0 mt-0.5">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${
                           notification.status === 'UNREAD' 
                             ? 'bg-black dark:bg-white' 
                             : 'bg-gray-200 dark:bg-gray-600'
@@ -290,30 +315,30 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                               {notification.title}
                             </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
                               {notification.message}
                             </p>
                           </div>
                           {notification.status === 'UNREAD' && (
-                            <div className="flex-shrink-0 ml-1">
-                              <div className="w-1.5 h-1.5 bg-black dark:bg-white rounded-full"></div>
+                            <div className="flex-shrink-0 ml-2">
+                              <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
                             </div>
                           )}
                         </div>
                         
-                        <div className="mt-1 flex items-center justify-between">
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDate(notification.createdAt)}
                           </p>
                           {notification.status === 'UNREAD' && (
-                            <span className="text-xs font-medium text-black dark:text-white">
-                              New
-                            </span>
+                          <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-black dark:bg-white dark:text-black rounded-full flex-shrink-0">
+                            New
+                          </span>
                           )}
                         </div>
                       </div>
@@ -324,12 +349,14 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
             )}
           </div>
 
-          {/* Compact Footer */}
+          {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-lg">
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {notifications.length} notification{notifications.length > 1 ? 's' : ''}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700 bg-stone-200 dark:bg-gray-700 rounded-b-xl">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 min-w-0">
+                  <span className="truncate">
+                    {notifications.length} notification{notifications.length > 1 ? 's' : ''}
+                  </span>
                 </div>
                 <button
                   onClick={() => {
@@ -337,12 +364,13 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                     // Navigate to notifications page
                     window.location.href = '/admin/notifications'
                   }}
-                  className="flex items-center space-x-1 text-xs font-medium text-gray-700 dark:text-gray-300"
+                  className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors touch-manipulation flex-shrink-0"
                 >
-                  <span>View all</span>
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* <span className="hidden sm:inline">View all</span>
+                  <span className="sm:hidden">All</span>
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  </svg> */}
                 </button>
               </div>
             </div>
@@ -353,7 +381,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-40 bg-black bg-opacity-25 sm:bg-transparent"
           onClick={() => setIsOpen(false)}
         />
       )}

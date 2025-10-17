@@ -147,15 +147,24 @@ export async function POST(request: NextRequest) {
     })
 
     // Create notification for the user (self-assigned task)
-    await prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         title: 'Task Created',
         message: `You have created a new task: ${taskName}`,
         type: 'TASK_ASSIGNED',
         userId: currentUser.id,
-        taskId: task.id
+        taskId: task.id,
+        status: 'UNREAD'
       }
     })
+
+    // Send real-time notification to the user
+    try {
+      const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+      await sendNotificationToUser(currentUser.id, notification)
+    } catch (error) {
+      console.error('Failed to send real-time notification:', error)
+    }
 
     return NextResponse.json({ success: true, data: task })
   } catch (error) {

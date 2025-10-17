@@ -114,10 +114,10 @@ export default function AnalyticsSection() {
       'IN_PROGRESS': 'bg-yellow-500',
       'IN_REVIEW': 'bg-purple-500',
       'COMPLETED': 'bg-green-500',
-      'CANCELLED': 'bg-gray-500',
+      'CANCELLED': 'bg-stone-2000',
       'BLOCKED': 'bg-red-500'
     }
-    return colors[status as keyof typeof colors] || 'bg-gray-500'
+    return colors[status as keyof typeof colors] || 'bg-stone-2000'
   }
 
   const getPriorityColor = (priority: string) => {
@@ -127,7 +127,7 @@ export default function AnalyticsSection() {
       'HIGH': 'bg-orange-500',
       'CRITICAL': 'bg-red-500'
     }
-    return colors[priority as keyof typeof colors] || 'bg-gray-500'
+    return colors[priority as keyof typeof colors] || 'bg-stone-2000'
   }
 
   // Prepare data for charts

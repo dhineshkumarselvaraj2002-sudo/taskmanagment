@@ -39,12 +39,12 @@ export default function ToggleTabs({
 
   const variantClasses = {
     default: {
-      tab: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+      tab: 'bg-white border border-gray-300 text-gray-700 hover:bg-stone-200 hover:text-gray-900',
       activeTab: 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700',
-      container: 'bg-gray-100 p-1 rounded-lg'
+      container: 'bg-stone-200 p-1 rounded-lg'
     },
     pills: {
-      tab: 'bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100',
+      tab: 'bg-transparent text-gray-600 hover:text-gray-900 hover:bg-stone-200',
       activeTab: 'bg-indigo-600 text-white hover:bg-indigo-700',
       container: 'bg-white border border-gray-200 rounded-lg p-1'
     },

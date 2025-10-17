@@ -109,6 +109,7 @@ export default function UsersTable() {
   }
 
   const clearFilters = () => {
+    setSearch('')
     setRole('')
     setStatus('')
     setDateRange('')
@@ -126,10 +127,12 @@ export default function UsersTable() {
     setTempRole('')
     setTempStatus('')
     setTempDateRange('')
+    setSearch('')
   }
 
   const getActiveFilterCount = () => {
     let count = 0
+    if (search) count++
     if (role) count++
     if (status) count++
     if (dateRange) count++
@@ -138,6 +141,7 @@ export default function UsersTable() {
 
   const getTempFilterCount = () => {
     let count = 0
+    if (search) count++
     if (tempRole) count++
     if (tempStatus) count++
     if (tempDateRange) count++
@@ -220,7 +224,7 @@ export default function UsersTable() {
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-stone-200 whitespace-nowrap"
               >
                 <FunnelIcon className="h-4 w-4 mr-2" />
                 Filters
@@ -234,7 +238,7 @@ export default function UsersTable() {
 
             {/* Modern Filters Panel */}
             {showFilters && (
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="bg-stone-200 rounded-lg p-3 border border-gray-200">
                 <div className="flex gap-2 items-center">
                   {/* Role Filter */}
                   <div className="w-32">
@@ -283,13 +287,13 @@ export default function UsersTable() {
                     <>
                       <button
                         onClick={applyFilters}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-stone-200 rounded transition-colors duration-200"
                       >
                         Apply
                       </button>
                       <button
                         onClick={clearTempFilters}
-                        className="inline-flex items-center px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className="inline-flex items-center px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
                       >
                         Clear
                       </button>
@@ -298,12 +302,25 @@ export default function UsersTable() {
                 </div>
               </div>
             )}
+
+            {/* Clear All Button - Show when any filters are active */}
+            {getActiveFilterCount() > 0 && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
+                >
+                  <XMarkIcon className="h-4 w-4 mr-1" />
+                  Clear All Filters
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Users Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-stone-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     User
@@ -327,7 +344,7 @@ export default function UsersTable() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className="hover:bg-stone-200">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -417,14 +434,14 @@ export default function UsersTable() {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-stone-200 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage(Math.min(totalPages || 1, page + 1))}
                   disabled={page === (totalPages || 1)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-stone-200 dark:hover:bg-gray-700 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

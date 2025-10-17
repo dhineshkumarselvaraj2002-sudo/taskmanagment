@@ -30,7 +30,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900">
+    <div className="p-6 bg-stone-200 dark:bg-gray-900">
       <div className="w-full">
         <div className="space-y-6">
           

@@ -97,6 +97,14 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Send real-time notification to the user
+    try {
+      const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+      await sendNotificationToUser(userId, notification)
+    } catch (error) {
+      console.error('Failed to send real-time notification:', error)
+    }
+
     return NextResponse.json({ success: true, data: notification })
   } catch (error) {
     console.error('Create notification error:', error)

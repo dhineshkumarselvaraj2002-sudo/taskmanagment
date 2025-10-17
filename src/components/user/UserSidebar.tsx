@@ -374,7 +374,7 @@ export default function UserSidebar() {
             <div className="lg:hidden">
               <button
                 onClick={toggleMobileSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="p-2 rounded-lg hover:bg-stone-200 dark:hover:bg-gray-700 transition-colors duration-200"
                 title="Close menu"
               >
                 <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
@@ -399,8 +399,8 @@ export default function UserSidebar() {
                         href={item.href}
                         className={cn(
                           isActive
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
-                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
+                            ? 'bg-stone-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-stone-200 dark:hover:bg-gray-700',
                           'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
                           (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3 mx-1' : 'px-4 py-3 mx-1'
                         )}
@@ -431,7 +431,66 @@ export default function UserSidebar() {
           </nav>
           
           {/* Bottom Section */}
-         
+          <div className={cn(
+            "mt-auto transition-all duration-300 border-t border-gray-200 dark:border-gray-700",
+            (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-6" : "px-6 py-6"
+          )}>
+            {/* Text Size Control */}
+            <div className="space-y-4">
+              {/* Text Size Control */}
+              <div className="space-y-2">
+                <div className={cn(
+                  "flex items-center justify-between",
+                  (sidebarMode === 'collapsed' && !isExpanded) && "justify-center"
+                )}>
+                  {!(sidebarMode === 'collapsed' && !isExpanded) && (
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Text Size
+                    </span>
+                  )}
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleFontSizeChange('small')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'small' && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                      )}
+                      title="Small text"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleFontSizeChange('medium')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'medium' && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                      )}
+                      title="Medium text"
+                    >
+                      <Type className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleFontSizeChange('large')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'large' && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                      )}
+                      title="Large text"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Current Size Indicator */}
+                {!(sidebarMode === 'collapsed' && !isExpanded) && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    {fontSize} size
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

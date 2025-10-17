@@ -502,7 +502,7 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
                           ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
                           : currentStep > step.id
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg shadow-green-500/25'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-stone-200 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
                       {currentStep > step.id ? (

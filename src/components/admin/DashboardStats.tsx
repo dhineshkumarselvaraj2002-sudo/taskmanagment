@@ -37,22 +37,27 @@ export default function DashboardStats() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-white shadow rounded-lg animate-pulse">
         <div className="px-4 py-5 sm:p-6">
-          <div className="animate-pulse">
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 rounded-lg bg-gray-200"></div>
-                    <div className="flex-1">
-                      <div className="h-3 w-16 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-6 w-12 bg-gray-200 rounded"></div>
-                    </div>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+            {[...Array(6)].map((_, i) => (
+              <div 
+                key={i} 
+                className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg p-4 animate-pulse"
+                style={{
+                  animationDelay: `${i * 100}ms`,
+                  animationDuration: '1.5s'
+                }}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 rounded-lg bg-gray-300 animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-3 w-16 bg-gray-300 rounded mb-2 animate-pulse"></div>
+                    <div className="h-6 w-12 bg-gray-300 rounded animate-pulse"></div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -77,7 +82,7 @@ export default function DashboardStats() {
       name: 'Total Tasks',
       value: stats.totalTasks,
       icon: Target,
-      color: 'text-blue-600',
+      color: 'text-blue -600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200'
     },
@@ -124,34 +129,39 @@ export default function DashboardStats() {
   ]
 
   return (
-    <div className="bg-white shadow rounded-lg">
+    <div className="bg-white shadow rounded-lg transition-all duration-300 hover:shadow-xl">
       <div className="px-4 py-5 sm:p-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
           {statCards.map((stat, index) => (
             <div
               key={stat.name}
-              className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100"
+              className="group relative bg-gradient-to-br from-white to-gray-50 rounded-lg p-4 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-105 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 border border-transparent hover:border-blue-200"
               style={{
-                animationDelay: `${index * 50}ms`,
-                animation: 'fadeInUp 0.4s ease-out forwards'
+                animationDelay: `${index * 100}ms`,
+                animation: 'fadeInUp 0.6s ease-out forwards',
+                opacity: 0,
+                transform: 'translateY(20px)'
               }}
             >
               <div className="flex items-center space-x-3">
                 {/* Icon */}
-                <div className={`flex-shrink-0 w-8 h-8 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`flex-shrink-0 w-8 h-8 ${stat.bgColor} rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                  <stat.icon className={`h-4 w-4 ${stat.color} transition-all duration-300 group-hover:scale-110`} />
                 </div>
                 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 transition-colors duration-300 group-hover:text-gray-700">
                     {stat.name}
                   </p>
-                  <p className="text-xl font-bold text-gray-900">
+                  <p className="text-xl font-bold text-gray-900 transition-all duration-300 group-hover:text-blue-600 group-hover:scale-105">
                     {stat.value}
                   </p>
                 </div>
               </div>
+              
+              {/* Hover effect overlay */}
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
           ))}
         </div>

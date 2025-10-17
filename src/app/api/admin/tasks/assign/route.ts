@@ -87,11 +87,20 @@ export async function POST(request: NextRequest) {
             message: `You have been assigned a new task: ${taskData.taskName}`,
             type: 'TASK_ASSIGNED',
             userId: userId,
-            taskId: task.id
+            taskId: task.id,
+            status: 'UNREAD'
           }
         })
 
         notifications.push(notification)
+
+        // Send real-time notification to the assigned user
+        try {
+          const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+          await sendNotificationToUser(userId, notification)
+        } catch (error) {
+          console.error('Failed to send real-time notification:', error)
+        }
       }
     }
 

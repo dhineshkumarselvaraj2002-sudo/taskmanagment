@@ -154,15 +154,28 @@ export async function PUT(
 
     // Create notification for the admin who assigned the task
     if (currentTask.createdById !== currentUser.id) {
-      await prisma.notification.create({
+      console.log('User updated task, creating notification for admin:', currentTask.createdById)
+      const notification = await prisma.notification.create({
         data: {
           title: 'Task Updated',
           message: `The task "${taskName || currentTask.taskName}" has been updated by ${currentUser.name}`,
           type: 'TASK_UPDATED',
           userId: currentTask.createdById,
-          taskId: task.id
+          taskId: task.id,
+          status: 'UNREAD'
         }
       })
+      console.log('Notification created successfully for admin:', currentTask.createdById)
+
+      // Send real-time notification to the admin
+      try {
+        const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+        await sendNotificationToUser(currentTask.createdById, notification)
+      } catch (error) {
+        console.error('Failed to send real-time notification:', error)
+      }
+    } else {
+      console.log('User updated their own task, no notification needed')
     }
 
     return NextResponse.json({ success: true, data: task })

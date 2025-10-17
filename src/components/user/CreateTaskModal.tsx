@@ -98,7 +98,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-stone-2000 bg-opacity-75 transition-opacity" onClick={onClose} />
         
         <div className="inline-block transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle">
           {/* Header */}
@@ -274,11 +274,11 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+            <div className="bg-stone-200 px-6 py-4 flex justify-end space-x-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-stone-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>

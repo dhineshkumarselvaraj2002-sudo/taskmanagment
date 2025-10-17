@@ -154,28 +154,54 @@ export async function PUT(
       }
     })
 
-    // Create notification for assigned user about task update
-    await prisma.notification.create({
-      data: {
-        title: 'Task Updated',
-        message: `The task "${taskName || currentTask.taskName}" has been updated by admin`,
-        type: 'TASK_UPDATED',
-        userId: task.assignedToId,
-        taskId: task.id
+    // Create notification for assigned user about task update (only if task has an assigned user)
+    if (task.assignedToId) {
+      console.log('Creating notification for assigned user:', task.assignedToId)
+      const notification = await prisma.notification.create({
+        data: {
+          title: 'Task Updated',
+          message: `The task "${taskName || currentTask.taskName}" has been updated by admin`,
+          type: 'TASK_UPDATED',
+          userId: task.assignedToId,
+          taskId: task.id,
+          status: 'UNREAD'
+        }
+      })
+      console.log('Notification created successfully for user:', task.assignedToId)
+
+      // Send real-time notification to the assigned user
+      try {
+        const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+        await sendNotificationToUser(task.assignedToId, notification)
+      } catch (error) {
+        console.error('Failed to send real-time notification:', error)
       }
-    })
+    } else {
+      console.log('No assigned user found for task, skipping notification creation')
+    }
 
     // If task was reassigned to a different user, notify the new assignee
     if (assignedToId && assignedToId !== currentTask.assignedToId) {
-      await prisma.notification.create({
+      console.log('Task reassigned, creating notification for new assignee:', assignedToId)
+      const reassignmentNotification = await prisma.notification.create({
         data: {
           title: 'Task Assigned to You',
           message: `You have been assigned the task "${taskName || currentTask.taskName}"`,
           type: 'TASK_ASSIGNED',
           userId: assignedToId,
-          taskId: task.id
+          taskId: task.id,
+          status: 'UNREAD'
         }
       })
+      console.log('Reassignment notification created successfully for user:', assignedToId)
+
+      // Send real-time notification to the new assignee
+      try {
+        const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+        await sendNotificationToUser(assignedToId, reassignmentNotification)
+      } catch (error) {
+        console.error('Failed to send real-time notification:', error)
+      }
     }
 
     return NextResponse.json({ success: true, data: task })
@@ -219,16 +245,31 @@ export async function DELETE(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Create notification for assigned user about task deletion
-    await prisma.notification.create({
-      data: {
-        title: 'Task Deleted',
-        message: `The task "${task.taskName}" has been deleted by admin`,
-        type: 'TASK_UPDATED',
-        userId: task.assignedToId,
-        taskId: null // Task is deleted, so no taskId
+    // Create notification for assigned user about task deletion (only if task has an assigned user)
+    if (task.assignedToId) {
+      console.log('Creating deletion notification for assigned user:', task.assignedToId)
+      const deletionNotification = await prisma.notification.create({
+        data: {
+          title: 'Task Deleted',
+          message: `The task "${task.taskName}" has been deleted by admin`,
+          type: 'TASK_UPDATED',
+          userId: task.assignedToId,
+          taskId: null, // Task is deleted, so no taskId
+          status: 'UNREAD'
+        }
+      })
+      console.log('Deletion notification created successfully for user:', task.assignedToId)
+
+      // Send real-time notification to the assigned user
+      try {
+        const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+        await sendNotificationToUser(task.assignedToId, deletionNotification)
+      } catch (error) {
+        console.error('Failed to send real-time notification:', error)
       }
-    })
+    } else {
+      console.log('No assigned user found for task, skipping deletion notification')
+    }
 
     await prisma.task.delete({
       where: { id }

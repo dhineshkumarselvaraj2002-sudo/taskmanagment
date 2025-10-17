@@ -85,7 +85,7 @@ export default function AdminLayoutWrapper({ children }: AdminLayoutWrapperProps
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-stone-200 dark:bg-gray-900">
       <AdminSidebar />
       
       {/* Mobile Menu Button */}

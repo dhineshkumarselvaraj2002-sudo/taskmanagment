@@ -386,7 +386,7 @@ export default function AdminSidebar() {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={toggleMobileSidebar}
-          className="p-3 rounded-xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-200 border border-slate-200/60 dark:border-gray-700 hover:scale-105 active:scale-95"
+          className="p-3 rounded-xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-200/60 dark:border-gray-700 hover:scale-110 active:scale-95 hover:rotate-3 animate-bounce-in"
           aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5 text-slate-700 dark:text-gray-300" />
@@ -404,10 +404,10 @@ export default function AdminSidebar() {
        {/* Sidebar */}
        <div 
          className={cn(
-           "fixed inset-y-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
+           "fixed inset-y-0 z-40 flex flex-col transition-all duration-300 ease-in-out transform",
            // Mobile styles
            "w-72 -translate-x-full lg:translate-x-0",
-           isMobileOpen && "translate-x-0",
+           isMobileOpen && "translate-x-0 animate-slide-in-left",
          // Desktop styles based on mode - TailAdmin widths
          "lg:z-50",
          sidebarMode === 'expanded' && "lg:w-72", // 288px
@@ -451,7 +451,7 @@ export default function AdminSidebar() {
              )}>
               {/* <button
                 onClick={cycleSidebarMode}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                className="p-2 rounded-lg hover:bg-stone-200 transition-colors duration-200"
                 title="Toggle sidebar"
               >
                 <ChevronLeft className="h-4 w-4 text-gray-600" />
@@ -462,7 +462,7 @@ export default function AdminSidebar() {
             <div className="lg:hidden">
               <button
                 onClick={toggleMobileSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="p-2 rounded-lg hover:bg-stone-200 dark:hover:bg-gray-700 transition-colors duration-200"
                 title="Close menu"
               >
                 <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
@@ -487,17 +487,17 @@ export default function AdminSidebar() {
                         href={item.href}
                         className={cn(
                           isActive
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-gray-400 dark:border-gray-500'
-                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
-                          'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500 shadow-sm'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10',
+                          'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-md active:scale-95',
                           (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3 mx-1' : 'px-4 py-3 mx-1'
                         )}
                         title={(sidebarMode === 'collapsed' && !isExpanded) ? item.name : undefined}
                       >
                         <item.icon
                           className={cn(
-                            isActive ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
-                            'h-5 w-5 shrink-0 transition-colors duration-200'
+                            isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400',
+                            'h-5 w-5 shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3'
                           )}
                           aria-hidden="true"
                         />
@@ -525,7 +525,61 @@ export default function AdminSidebar() {
             "mt-auto transition-all duration-300 border-t border-gray-200 dark:border-gray-700",
             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-6" : "px-6 py-6"
           )}>
-           
+            {/* Text Size Control */}
+            <div className="space-y-4">
+              {/* Text Size Control */}
+              <div className="space-y-2">
+                <div className={cn(
+                  "flex items-center justify-between",
+                  (sidebarMode === 'collapsed' && !isExpanded) && "justify-center"
+                )}>
+                  {!(sidebarMode === 'collapsed' && !isExpanded) && (
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Text Size
+                    </span>
+                  )}
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleFontSizeChange('small')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'small' && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      )}
+                      title="Small text"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleFontSizeChange('medium')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'medium' && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      )}
+                      title="Medium text"
+                    >
+                      <Type className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleFontSizeChange('large')}
+                      className={cn(
+                        "p-1.5 rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700",
+                        fontSize === 'large' && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      )}
+                      title="Large text"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Current Size Indicator */}
+                {!(sidebarMode === 'collapsed' && !isExpanded) && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    {fontSize} size
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

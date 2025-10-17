@@ -116,7 +116,7 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50">
+      <div className="p-6 bg-stone-200">
         <div className="w-full">
         <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
@@ -137,7 +137,7 @@ export default function UserProfilePage() {
 
   if (!userData) {
     return (
-      <div className="p-6 bg-gray-50">
+      <div className="p-6 bg-stone-200">
         <div className="w-full">
           <div className="text-center py-16">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -150,7 +150,7 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50">
+    <div className="p-6 bg-stone-200">
       <div className="w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8">
@@ -221,7 +221,7 @@ export default function UserProfilePage() {
           </CardHeader>
           <CardContent className="pb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="text-center p-4bg-stone-200 rounded-xl border border-blue-100">
                 <Target className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-blue-900">{userData.totalTasks || 0}</div>
                 <div className="text-sm text-blue-700 font-medium">Total Tasks</div>
@@ -272,7 +272,7 @@ export default function UserProfilePage() {
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Member since</span>
@@ -280,7 +280,7 @@ export default function UserProfilePage() {
                       <span className="text-sm font-medium text-gray-900">{new Date(userData.createdAt).toLocaleDateString()}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Activity className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Last updated</span>
@@ -288,7 +288,7 @@ export default function UserProfilePage() {
                       <span className="text-sm font-medium text-gray-900">{new Date(userData.updatedAt).toLocaleDateString()}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Status</span>
@@ -323,7 +323,7 @@ export default function UserProfilePage() {
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
@@ -334,14 +334,16 @@ export default function UserProfilePage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
                 </div>
+
+                <p>Info</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center justify-between p-4bg-stone-200 rounded-xl border border-blue-100">
                     <div className="flex items-center gap-3">
                       <Shield className="w-5 h-5 text-blue-600" />
                       <div>

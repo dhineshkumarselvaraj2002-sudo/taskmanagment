@@ -439,8 +439,11 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
       
       {/* Modern Modal Content with glassmorphism */}
       <div 
-        className="relative transform overflow-hidden rounded-2xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-300 w-full max-w-5xl max-h-[95vh] flex flex-col animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4"
+        className="relative transform overflow-hidden rounded-2xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-500 ease-out w-full max-w-5xl max-h-[95vh] flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          animation: 'scaleIn 0.5s ease-out, slideInFromBottom 0.5s ease-out'
+        }}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           {/* Modern Header with gradient */}
@@ -479,7 +482,7 @@ export default function CreateTaskModal({ onClose, onSave }: CreateTaskModalProp
                           ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25'
                           : currentStep > step.id
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg shadow-green-500/25'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-stone-200 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
                       {currentStep > step.id ? (

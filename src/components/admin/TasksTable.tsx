@@ -14,7 +14,8 @@ import {
   Filter,
   X,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react'
 import EditTaskModal from './EditTaskModal'
 import { useTasks, useDeleteTask } from '@/hooks/use-tasks'
@@ -159,9 +160,9 @@ export default function TasksTable() {
       case 'BLOCKED':
         return 'bg-red-100 text-red-800'
       case 'TODO':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-stone-200 text-gray-800'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-stone-200 text-gray-800'
     }
   }
 
@@ -216,7 +217,7 @@ export default function TasksTable() {
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-stone-200 whitespace-nowrap"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
@@ -230,7 +231,7 @@ export default function TasksTable() {
 
             {/* Simple Filters Panel */}
             {showFilters && (
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="bg-stone-200 rounded-lg p-3 border border-gray-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Status Filter */}
                   <div>
@@ -286,13 +287,13 @@ export default function TasksTable() {
                       <>
                         <button
                           onClick={applyFilters}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-stone-200 rounded transition-colors duration-200"
                         >
                           Apply
                         </button>
                         <button
                           onClick={resetTempFilters}
-                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
                         >
                           Reset
                         </button>
@@ -302,7 +303,7 @@ export default function TasksTable() {
                     {getActiveFilterCount() > 0 && (
                       <button
                         onClick={clearFilters}
-                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
                       >
                         <X className="h-3 w-3 mr-1" />
                         Clear
@@ -317,7 +318,7 @@ export default function TasksTable() {
           {/* Tasks Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-stone-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Task
@@ -340,8 +341,17 @@ export default function TasksTable() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task: ExtendedTask) => (
-                  <tr key={task.id} className="hover:bg-gray-50">
+                {tasks.map((task: ExtendedTask, index: number) => (
+                  <tr 
+                    key={task.id} 
+                    className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-300 ease-in-out hover:scale-[1.01] hover:shadow-sm"
+                    style={{
+                      animationDelay: `${index * 50}ms`,
+                      animation: 'fadeInUp 0.4s ease-out forwards',
+                      opacity: 0,
+                      transform: 'translateY(10px)'
+                    }}
+                  >
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -401,7 +411,7 @@ export default function TasksTable() {
                             console.log('Event currentTarget:', e.currentTarget)
                             setEditingTask(task)
                           }}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="p-2 rounded-lg text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-200 hover:scale-110 hover:rotate-3 active:scale-95"
                           type="button"
                         >
                           <Edit className="h-4 w-4" />
@@ -412,7 +422,7 @@ export default function TasksTable() {
                             e.stopPropagation()
                             handleDelete(task)
                           }}
-                          className="text-red-600 hover:text-red-900"
+                          className="p-2 rounded-lg text-red-600 hover:text-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 hover:scale-110 hover:rotate-3 active:scale-95"
                           type="button"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -435,14 +445,14 @@ export default function TasksTable() {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-stone-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95 disabled:hover:scale-100"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-stone-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95 disabled:hover:scale-100"
                 >
                   Next
                 </button>

@@ -54,7 +54,7 @@ export default function TestNotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-stone-200 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <Card>
           <CardHeader>
@@ -88,7 +88,7 @@ export default function TestNotificationsPage() {
 
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-3">Test Results:</h3>
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-64 overflow-y-auto">
+              <div className="bg-stone-200 dark:bg-gray-800 rounded-lg p-4 max-h-64 overflow-y-auto">
                 {testResults.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400">No test results yet. Click a button above to test.</p>
                 ) : (
@@ -103,7 +103,7 @@ export default function TestNotificationsPage() {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="mt-6 p-4bg-stone-200 dark:bg-blue-900/20 rounded-lg">
               <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Instructions:</h4>
               <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
                 <li>1. Open the notification bell in the header</li>

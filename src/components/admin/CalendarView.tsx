@@ -322,7 +322,7 @@ export default function CalendarView() {
       case 'BLOCKED':
         return 'bg-red-100 text-red-700'
       default:
-        return 'bg-gray-100 text-gray-700'
+        return 'bg-stone-200 text-gray-700'
     }
   }
 
@@ -337,7 +337,7 @@ export default function CalendarView() {
       case 'LOW':
         return 'bg-green-100 text-green-700 border border-green-200'
       default:
-        return 'bg-gray-100 text-gray-700 border border-gray-200'
+        return 'bg-stone-200 text-gray-700 border border-gray-200'
     }
   }
 
@@ -677,7 +677,7 @@ export default function CalendarView() {
           </div>
           
           {/* Debug Info */}
-          {/* <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+          {/* <div className="mt-4 p-4 bg-stone-200 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Database Information:</h4>
             <p className="text-xs text-gray-600">Deadline entries: {deadlineData.length}</p>
             <p className="text-xs text-gray-600">Current month: {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>

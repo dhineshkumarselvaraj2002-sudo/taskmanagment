@@ -70,12 +70,12 @@ export default function ModernFilters({
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => onSearchChange?.(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-stone-200 focus:bg-white"
             />
             {searchValue && (
               <button
                 onClick={() => onSearchChange?.('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-stone-200 rounded-full transition-colors"
               >
                 <X className="h-4 w-4 text-gray-400" />
               </button>
@@ -91,7 +91,7 @@ export default function ModernFilters({
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowFilterOptions(!showFilterOptions)}
-                className="flex items-center space-x-2 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors"
+                className="flex items-center space-x-2 hover:bg-stone-200 px-3 py-2 rounded-lg transition-colors"
               >
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Filters</span>
@@ -222,7 +222,7 @@ export default function ModernFilters({
                   {onClearFilters && (
                     <button
                       onClick={onClearFilters}
-                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-stone-200 rounded-lg transition-colors"
                     >
                       Clear
                     </button>
@@ -262,7 +262,7 @@ export default function ModernFilters({
                   if (!filter || !filter.value || filter.value === 'all') return null
                   const option = filter.options.find(opt => opt.value === filter.value)
                   return (
-                    <span key={key} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    <span key={key} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-stone-200 text-gray-800">
                       {key}: {option?.label}
                       <button
                         onClick={() => filter.onChange('all')}

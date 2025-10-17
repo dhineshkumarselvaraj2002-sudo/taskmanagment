@@ -85,7 +85,7 @@ export default function UserLayoutWrapper({ children }: UserLayoutWrapperProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-stone-200 dark:bg-gray-900">
       <UserSidebar />
       
       {/* Mobile Menu Button */}

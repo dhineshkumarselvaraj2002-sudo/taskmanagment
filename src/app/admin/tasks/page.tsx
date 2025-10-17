@@ -93,7 +93,7 @@ export default function TasksPage({ searchParams }: TasksPageProps) {
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900">
+    <div className="p-6 bg-stone-200 dark:bg-gray-900">
       <div className="w-full">
         <div className="space-y-6">
           {/* <div>
@@ -131,7 +131,7 @@ export default function TasksPage({ searchParams }: TasksPageProps) {
             </div>
             
             <div className="p-6">
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <div className="bg-stone-200 dark:bg-gray-700 p-4 rounded-lg">
                 <TasksTable />
               </div>
             </div>

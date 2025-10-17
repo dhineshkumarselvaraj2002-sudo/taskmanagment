@@ -85,7 +85,8 @@ export async function PATCH(
 
     // Only notify the admin who originally created/assigned the task
     if (currentTask.createdById !== currentUser.id) {
-      await prisma.notification.create({
+      console.log('User changed task status, creating notification for admin:', currentTask.createdById)
+      const notification = await prisma.notification.create({
         data: {
           title: 'Task Status Updated',
           message: `Task "${currentTask.taskName}" status changed from ${currentTask.status} to ${status} by ${currentUser.name}`,
@@ -95,6 +96,17 @@ export async function PATCH(
           status: 'UNREAD'
         }
       })
+      console.log('Status change notification created successfully for admin:', currentTask.createdById)
+
+      // Send real-time notification to the admin
+      try {
+        const { sendNotificationToUser } = await import('@/app/api/notifications/stream/route')
+        await sendNotificationToUser(currentTask.createdById, notification)
+      } catch (error) {
+        console.error('Failed to send real-time notification:', error)
+      }
+    } else {
+      console.log('User changed status of their own task, no notification needed')
     }
 
     return NextResponse.json({

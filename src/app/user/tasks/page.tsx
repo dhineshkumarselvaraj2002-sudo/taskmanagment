@@ -226,9 +226,9 @@ export default function UserTasksPage() {
     switch (status) {
       case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-200'
       case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'TODO': return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'TODO': return 'bg-stone-200 text-gray-800 border-gray-200'
       case 'BLOCKED': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-stone-200 text-gray-800 border-gray-200'
     }
   }
 
@@ -238,7 +238,7 @@ export default function UserTasksPage() {
       case 'HIGH': return 'bg-orange-100 text-orange-800 border-orange-200'
       case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'LOW': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-stone-200 text-gray-800 border-gray-200'
     }
   }
 
@@ -276,9 +276,9 @@ export default function UserTasksPage() {
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+            <div className="group relative bg-blue-100 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
               <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8bg-stone-200 rounded-lg flex items-center justify-center">
                   <Clock className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -292,7 +292,7 @@ export default function UserTasksPage() {
               </div>
             </div>
 
-            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+            <div className="group relative bg-green-100 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                   <CheckCircle className="h-4 w-4 text-green-600" />
@@ -308,7 +308,7 @@ export default function UserTasksPage() {
               </div>
             </div>
 
-            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+            <div className="group relative bg-yellow-100 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
                   <Play className="h-4 w-4 text-amber-600" />
@@ -324,7 +324,7 @@ export default function UserTasksPage() {
               </div>
             </div>
 
-            <div className="group relative bg-gray-50 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-gray-100">
+            <div className="group relative bg-red-0 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
                   <AlertCircle className="h-4 w-4 text-red-600" />
@@ -378,7 +378,7 @@ export default function UserTasksPage() {
                     placeholder="Search tasks by name, description, category, or tags..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   {searchTerm && (
                     <button
@@ -398,7 +398,7 @@ export default function UserTasksPage() {
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 whitespace-nowrap"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
@@ -412,7 +412,7 @@ export default function UserTasksPage() {
 
             {/* Simple Filters Panel */}
             {showFilters && (
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="bg-white   rounded-lg p-3 border border-gray-200 ">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Status Filter */}
                   <div>
@@ -472,13 +472,13 @@ export default function UserTasksPage() {
                       <>
                         <button
                           onClick={applyFilters}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors duration-200"
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-stone-200 rounded transition-colors duration-200"
                         >
                           Apply
                         </button>
                         <button
                           onClick={resetTempFilters}
-                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                          className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
                         >
                           Reset
                         </button>
@@ -488,7 +488,7 @@ export default function UserTasksPage() {
                     {getActiveFilterCount() > 0 && (
                       <button
                         onClick={clearFilters}
-                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-stone-200 rounded transition-colors duration-200"
                       >
                         <X className="h-3 w-3 mr-1" />
                         Clear
@@ -556,7 +556,7 @@ export default function UserTasksPage() {
                       {/* Task Tags */}
                       <div className="flex flex-wrap gap-2 mb-4">
                         {task.tags && task.tags.map((tag: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                          <span key={index} className="px-2 py-1 bg-stone-200 text-gray-700 text-xs rounded-full">
                             #{tag}
                           </span>
                         ))}
@@ -589,7 +589,7 @@ export default function UserTasksPage() {
                       </div>
 
                       {/* Status Summary */}
-                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="mt-4 p-3 bg-stone-200 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-700">Current Status:</span>

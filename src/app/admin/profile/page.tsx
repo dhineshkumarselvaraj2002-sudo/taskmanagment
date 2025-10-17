@@ -129,7 +129,7 @@ export default function AdminProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50">
+      <div className="p-6 bg-stone-200">
         <div className="w-full">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
@@ -150,7 +150,7 @@ export default function AdminProfilePage() {
 
   if (!userData) {
     return (
-      <div className="p-6 bg-gray-50">
+      <div className="p-6 bg-stone-200">
         <div className="w-full">
           <div className="text-center py-16">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -163,7 +163,7 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50">
+    <div className="p-6 bg-stone-200">
       <div className="w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8">
@@ -291,7 +291,7 @@ export default function AdminProfilePage() {
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Admin since</span>
@@ -299,7 +299,7 @@ export default function AdminProfilePage() {
                       <span className="text-sm font-medium text-gray-900">{new Date(userData.createdAt).toLocaleDateString()}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Activity className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Last updated</span>
@@ -307,7 +307,7 @@ export default function AdminProfilePage() {
                       <span className="text-sm font-medium text-gray-900">{new Date(userData.updatedAt).toLocaleDateString()}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between py-3 px-3 bg-stone-200 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Shield className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Access level</span>
@@ -328,7 +328,7 @@ export default function AdminProfilePage() {
             <Card className="shadow-lg border-0 bg-white">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-xl">
-                  <User className="w-6 h-6 text-blue-600" />
+                  <User className="w-6 h-6  text-blue-600" />
                   Personal Information
                 </CardTitle>
                 {/* <CardDescription className="text-sm text-gray-600">Update your personal details and contact information</CardDescription> */}
@@ -341,7 +341,7 @@ export default function AdminProfilePage() {
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
@@ -352,7 +352,7 @@ export default function AdminProfilePage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
@@ -364,7 +364,7 @@ export default function AdminProfilePage() {
                     <Input
                       id="department"
                       value="Administration"
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={true}
                     />
                   </div>
@@ -373,7 +373,7 @@ export default function AdminProfilePage() {
                     <Input
                       id="position"
                       value="System Administrator"
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={true}
                     />
                   </div>
@@ -385,7 +385,7 @@ export default function AdminProfilePage() {
                     <Input
                       id="phone"
                       value="+1 (555) 987-6543"
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
@@ -394,7 +394,7 @@ export default function AdminProfilePage() {
                     <Input
                       id="location"
                       value="New York, NY"
-                      className="bg-gray-50 hover:bg-gray-100 focus:bg-white transition-colors"
+                      className="bg-stone-200 hover:bg-stone-200 focus:bg-white transition-colors"
                       disabled={!isEditing}
                     />
                   </div>
@@ -405,13 +405,13 @@ export default function AdminProfilePage() {
                   <textarea
                     id="bio"
                     value="Experienced system administrator with expertise in managing complex IT infrastructure and ensuring optimal system performance. Committed to maintaining security and efficiency across all organizational systems."
-                    className="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 focus:bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
+                    className="w-full px-3 py-2 bg-stone-200 hover:bg-stone-200 focus:bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
                     rows={3}
                     disabled={!isEditing}
                   />
                 </div> */}
                 
-                {/* <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                {/* <div className="flex items-center justify-between p-4 bg-stone-200 rounded-xl border border-gray-200">
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5 text-gray-600" />
                     <div>

@@ -113,7 +113,7 @@ export default function NotificationsTable() {
       case 'DEADLINE_PASSED':
         return 'bg-red-100 text-red-800'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-stone-200 text-gray-800'
     }
   }
 
@@ -219,7 +219,7 @@ export default function NotificationsTable() {
                   setUserId('')
                   setPage(1)
                 }}
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                className="w-full px-4 py-2 bg-stone-200 text-gray-700 rounded-md hover:bg-gray-200"
               >
                 Clear Filters
               </button>
@@ -230,7 +230,7 @@ export default function NotificationsTable() {
         {/* Notifications Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-stone-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Notification
@@ -254,7 +254,7 @@ export default function NotificationsTable() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {notifications.map((notification) => (
-                <tr key={notification.id} className="hover:bg-gray-50">
+                <tr key={notification.id} className="hover:bg-stone-200">
                   <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
