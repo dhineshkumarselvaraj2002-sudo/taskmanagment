@@ -124,8 +124,7 @@ export async function POST(request: NextRequest) {
       category,
       tags,
       estimatedHours,
-      assignedToId,
-      checklistItems
+      assignedToId
     } = body
 
     // Validate assigned user exists
@@ -152,19 +151,11 @@ export async function POST(request: NextRequest) {
         tags: tags || [],
         estimatedHours,
         assignedToId,
-        createdById: currentUser.id,
-        checklistItems: checklistItems ? {
-          create: checklistItems.map((item, index) => ({
-            title: item.title,
-            isCompleted: item.isCompleted,
-            order: index
-          }))
-        } : undefined
+        createdById: currentUser.id
       },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
-        createdBy: { select: { id: true, name: true, email: true } },
-        checklistItems: true
+        createdBy: { select: { id: true, name: true, email: true } }
       }
     })
 

@@ -143,7 +143,6 @@ export interface TaskFormData {
   tags: string[]
   estimatedHours?: number
   assignedToId: string
-  checklistItems?: { title: string; isCompleted: boolean }[]
 }
 
 export interface UserFormData {

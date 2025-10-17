@@ -76,10 +76,10 @@ const sidebarContent = {
         hasSubmenu: false
       },
       { 
-        name: 'User Profile', 
+        name: 'Admin Profile', 
         href: '/admin/profile', 
         icon: UserIcon,
-        description: 'User profile management',
+        description: 'Admin profile management',
         badge: null,
         hasSubmenu: false
       }
@@ -422,7 +422,7 @@ export default function AdminSidebar() {
         <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-800 shadow-lg border-r border-gray-300 dark:border-gray-700">
           {/* Header - TailAdmin Style */}
            <div className={cn(
-             "flex shrink-0 items-center transition-all duration-300",
+             "flex shrink-0 items-center transition-all duration-300 border-b border-gray-200 dark:border-gray-700",
              (sidebarMode === 'collapsed' && !isExpanded) ? "h-16 justify-center px-4" : "h-16 px-6"
            )}>
              {!(sidebarMode === 'collapsed' && !isExpanded) && (
@@ -473,11 +473,11 @@ export default function AdminSidebar() {
           {/* Navigation - TailAdmin Style */}
            <nav className={cn(
              "flex flex-1 flex-col transition-all duration-300",
-             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
+             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-6" : "px-6 py-6"
            )}>
              {/* MENU Section */}
-             <div className="mb-6">
-              <ul role="list" className="space-y-1">
+             <div className="mb-8">
+              <ul role="list" className="space-y-2">
                 {sidebarContent.navigation.menu.map((item) => {
                   const isActive = pathname === item.href
                   
@@ -490,7 +490,7 @@ export default function AdminSidebar() {
                             ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-gray-400 dark:border-gray-500'
                             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
                           'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
-                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3' : 'px-3 py-2.5'
+                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3 mx-1' : 'px-4 py-3 mx-1'
                         )}
                         title={(sidebarMode === 'collapsed' && !isExpanded) ? item.name : undefined}
                       >
@@ -522,16 +522,10 @@ export default function AdminSidebar() {
           
           {/* TailAdmin Bottom Section */}
           <div className={cn(
-            "mt-auto transition-all duration-300",
-            (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
+            "mt-auto transition-all duration-300 border-t border-gray-200 dark:border-gray-700",
+            (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-6" : "px-6 py-6"
           )}>
-            {!(sidebarMode === 'collapsed' && !isExpanded) && (
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
-                <p className={`${fontClasses.nav} font-bold text-gray-900 dark:text-gray-100`}>
-                  #1 Tailwind CSS Dashboard
-                </p>
-              </div>
-            )}
+           
           </div>
         </div>
       </div>

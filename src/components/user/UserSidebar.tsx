@@ -348,7 +348,7 @@ export default function UserSidebar() {
         <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-800 shadow-lg border-r border-gray-300 dark:border-gray-700">
           {/* Header */}
            <div className={cn(
-             "flex shrink-0 items-center transition-all duration-300",
+             "flex shrink-0 items-center transition-all duration-300 border-b border-gray-200 dark:border-gray-700",
              (sidebarMode === 'collapsed' && !isExpanded) ? "h-16 justify-center px-4" : "h-16 px-6"
            )}>
              {!(sidebarMode === 'collapsed' && !isExpanded) && (
@@ -385,11 +385,11 @@ export default function UserSidebar() {
           {/* Navigation */}
            <nav className={cn(
              "flex flex-1 flex-col transition-all duration-300",
-             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-4" : "px-4 py-4"
+             (sidebarMode === 'collapsed' && !isExpanded) ? "px-2 py-6" : "px-6 py-6"
            )}>
              {/* MENU Section */}
-             <div className="mb-6">
-              <ul role="list" className="space-y-1">
+             <div className="mb-8">
+              <ul role="list" className="space-y-2">
                 {sidebarContent.navigation.menu.map((item) => {
                   const isActive = pathname === item.href
                   
@@ -402,7 +402,7 @@ export default function UserSidebar() {
                             ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
                             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
                           'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
-                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3' : 'px-3 py-2.5'
+                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3 mx-1' : 'px-4 py-3 mx-1'
                         )}
                         title={(sidebarMode === 'collapsed' && !isExpanded) ? item.name : undefined}
                       >
@@ -428,50 +428,10 @@ export default function UserSidebar() {
               </ul>
             </div>
 
-            {/* OTHERS Section */}
-            <div className="mb-6">
-              <ul role="list" className="space-y-1">
-                {sidebarContent.navigation.others.map((item) => {
-                  const isActive = pathname === item.href
-                  
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          isActive
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-l-4 border-green-400 dark:border-green-500'
-                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700',
-                          'group flex items-center gap-x-3 rounded-lg font-medium transition-all duration-200',
-                          (sidebarMode === 'collapsed' && !isExpanded) ? 'justify-center p-3' : 'px-3 py-2.5'
-                        )}
-                        title={(sidebarMode === 'collapsed' && !isExpanded) ? item.name : undefined}
-                      >
-                        <item.icon
-                          className={cn(
-                            isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400',
-                            'h-5 w-5 shrink-0 transition-colors duration-200'
-                          )}
-                          aria-hidden="true"
-                        />
-                        {!(sidebarMode === 'collapsed' && !isExpanded) && (
-                          <div className="flex items-center justify-between flex-1 min-w-0">
-                            <span className={`truncate ${fontClasses.nav}`}>{item.name}</span>
-                            {item.hasSubmenu && (
-                              <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            )}
-                          </div>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
           </nav>
           
           {/* Bottom Section */}
-
+         
         </div>
       </div>
 

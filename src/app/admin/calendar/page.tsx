@@ -11,7 +11,7 @@ export default function CalendarPage() {
               Calendar View
             </h1>
             <p className="mt-2 text-admin-body">
-              View task deadlines by hovering over calendar dates to see user assignments and task status
+              View task deadlines by clicking on calendar dates to see user assignments and task status
             </p>
           </div>
 

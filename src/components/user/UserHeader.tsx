@@ -151,7 +151,7 @@ export default function UserHeader() {
         </button>
 
         {/* Search Bar - TailAdmin Style */}
-        <div className="relative hidden sm:block">
+        {/* <div className="relative hidden sm:block">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </div>
@@ -166,7 +166,7 @@ export default function UserHeader() {
               ⌘K
             </kbd>
           </div>
-        </div>
+        </div> */}
       </div>
       
       <div className="flex items-center gap-x-4 lg:gap-x-6">

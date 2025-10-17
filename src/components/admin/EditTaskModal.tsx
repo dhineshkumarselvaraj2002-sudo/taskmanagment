@@ -103,9 +103,6 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
       case 3: // Settings
         return true // No specific validation for this step
       
-      case 4: // Checklist
-        return true // No specific validation for this step
-      
       default:
         return true
     }

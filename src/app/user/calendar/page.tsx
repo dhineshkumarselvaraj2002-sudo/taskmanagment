@@ -22,7 +22,7 @@ export default async function UserCalendarPage() {
               My Calendar
             </h1>
             <p className="mt-2 text-admin-body">
-              View and manage your assigned tasks on the calendar
+              View and manage your assigned tasks by clicking on calendar dates to see task details
             </p>
           </div>
 

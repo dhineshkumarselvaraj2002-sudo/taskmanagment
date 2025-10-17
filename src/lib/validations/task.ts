@@ -11,10 +11,6 @@ export const taskSchema = z.object({
   tags: z.array(z.string()).optional(),
   estimatedHours: z.number().positive().optional(),
   assignedToId: z.string().min(1, "Assigned user is required"),
-  checklistItems: z.array(z.object({
-    title: z.string().min(1, "Checklist item title is required"),
-    isCompleted: z.boolean().default(false),
-  })).optional(),
 }).refine((data) => data.endDate > data.startDate, {
   message: "End date must be after start date",
   path: ["endDate"],

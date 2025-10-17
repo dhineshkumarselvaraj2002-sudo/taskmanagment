@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Calendar, momentLocalizer, Components } from 'react-big-calendar'
 import moment from 'moment'
 import { ExtendedUser } from '@/types'
@@ -187,8 +187,8 @@ export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 })
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     console.log('CalendarView mounted, fetching data...')
@@ -196,14 +196,6 @@ export default function CalendarView() {
     fetchUsers()
   }, [selectedUser, selectedStatus, selectedPriority, searchValue, currentDate])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout)
-      }
-    }
-  }, [hoverTimeout])
 
   const fetchDeadlineData = async () => {
     try {
@@ -351,54 +343,25 @@ export default function CalendarView() {
 
 
 
-  const handleDateHover = (dateString: string, event: React.MouseEvent) => {
-    // Clear any existing timeout
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout)
-      setHoverTimeout(null)
-    }
-
+  const handleDateClick = (dateString: string, event: React.MouseEvent) => {
     const dateData = deadlineData.find(d => d.date === dateString)
     if (dateData && dateData.tasks.length > 0) {
       setSelectedDate(dateString)
       
-      // Get the bounding rectangle of the hovered element
+      // Get the bounding rectangle of the clicked element
       const rect = (event.target as HTMLElement).getBoundingClientRect()
-      const modalHeight = 100 // Compact modal height
-      const modalWidth = 240 // Compact modal width
+      const modalHeight = 300 // Modal height
+      const modalWidth = 320 // Modal width
       
       // Calculate position to ensure modal is above the date
       const x = Math.max(10, Math.min(rect.left + (rect.width / 2) - (modalWidth / 2), window.innerWidth - modalWidth - 10))
-      const y = Math.max(10, rect.top - modalHeight - 10) // Position above with 10px gap
+      const y = Math.max(10, rect.top - modalHeight - 15) // Position above with 15px gap
       
       setClickPosition({ x, y })
       setIsModalOpen(true)
     }
   }
 
-  const handleDateLeave = () => {
-    // Add longer delay before closing modal to allow moving to modal
-    const timeout = setTimeout(() => {
-      setIsModalOpen(false)
-      setSelectedDate(null)
-    }, 500) // 500ms delay to allow moving to modal
-    
-    setHoverTimeout(timeout)
-  }
-
-  const handleModalEnter = () => {
-    // Clear timeout when mouse enters modal
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout)
-      setHoverTimeout(null)
-    }
-  }
-
-  const handleModalLeave = () => {
-    // Close modal when mouse leaves modal
-    setIsModalOpen(false)
-    setSelectedDate(null)
-  }
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -502,8 +465,7 @@ export default function CalendarView() {
               ? 'bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border-blue-200/60 hover:shadow-lg cursor-pointer hover:scale-105 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90' 
               : 'hover:bg-slate-50/80 cursor-default hover:shadow-sm'
           } ${isToday ? 'bg-gradient-to-br from-amber-100/90 to-yellow-100/90 border-amber-300/70 shadow-md' : ''}`}
-          onMouseEnter={(e) => handleDateHover(dateString, e)}
-          onMouseLeave={handleDateLeave}
+          onClick={(e) => handleDateClick(dateString, e)}
         >
           <div className="flex items-center justify-between h-full">
             <span className={`text-sm font-bold ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
@@ -594,7 +556,7 @@ export default function CalendarView() {
                 </button>
               </div>
               <p className="text-sm text-slate-600 font-medium">
-                Hover over dates with deadlines to view task details
+                Click on dates with deadlines to view task details
               </p>
               {/* Active Filters Display */}
               {(selectedUser !== 'all' || selectedStatus !== 'all' || selectedPriority !== 'all' || searchValue) && (
@@ -737,16 +699,15 @@ export default function CalendarView() {
             onClick={closeModal}
           ></div>
 
-          {/* Professional compact modal positioned above the hovered date */}
+          {/* Professional compact modal positioned above the clicked date */}
           <div 
-            className="fixed bg-white/98 backdrop-blur-md rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-60 border border-slate-200/60"
+            ref={modalRef}
+            className="fixed bg-white/98 backdrop-blur-md rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-80 border border-slate-200/60"
             style={{
               left: clickPosition.x,
               top: clickPosition.y,
               zIndex: 60
             }}
-            onMouseEnter={handleModalEnter}
-            onMouseLeave={handleModalLeave}
           >
               {/* Header */}
               <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-2">

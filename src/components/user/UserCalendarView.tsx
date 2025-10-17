@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ExtendedUser } from '@/types'
 import { format } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
 import { 
   UserIcon, 
   ClockIcon, 
@@ -170,6 +171,7 @@ interface DeadlineData {
 }
 
 export default function UserCalendarView() {
+  const { toast } = useToast()
   const [deadlineData, setDeadlineData] = useState<DeadlineData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -179,7 +181,6 @@ export default function UserCalendarView() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 })
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
@@ -187,14 +188,6 @@ export default function UserCalendarView() {
     fetchDeadlineData()
   }, [selectedStatus, selectedPriority, searchValue, currentDate])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout)
-      }
-    }
-  }, [hoverTimeout])
 
   const fetchDeadlineData = async () => {
     try {
@@ -283,18 +276,20 @@ export default function UserCalendarView() {
     }
   }
 
-  const handleDateHover = (dateString: string, event: React.MouseEvent) => {
-    // Clear any existing timeout
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout)
-      setHoverTimeout(null)
-    }
-
+  const handleDateClick = (dateString: string, event: React.MouseEvent) => {
     const dateData = deadlineData.find(d => d.date === dateString)
     if (dateData && dateData.tasks.length > 0) {
       setSelectedDate(dateString)
       
-      // Get the bounding rectangle of the hovered element
+      // Show toast notification for task details
+      toast({
+        title: "Task Details",
+        description: `Found ${dateData.tasks.length} task(s) due on ${format(new Date(dateString), 'MMM dd, yyyy')}`,
+        variant: "default",
+        className: "bg-blue-50 border-blue-200 text-blue-800",
+      })
+      
+      // Get the bounding rectangle of the clicked element
       const rect = (event.target as HTMLElement).getBoundingClientRect()
       const modalHeight = 100 // Compact modal height
       const modalWidth = 240 // Compact modal width
@@ -305,31 +300,15 @@ export default function UserCalendarView() {
       
       setClickPosition({ x, y })
       setIsModalOpen(true)
+    } else {
+      // Show toast for dates with no tasks
+      toast({
+        title: "No Tasks",
+        description: `No tasks due on ${format(new Date(dateString), 'MMM dd, yyyy')}`,
+        variant: "default",
+        className: "bg-gray-50 border-gray-200 text-gray-800",
+      })
     }
-  }
-
-  const handleDateLeave = () => {
-    // Add longer delay before closing modal to allow moving to modal
-    const timeout = setTimeout(() => {
-      setIsModalOpen(false)
-      setSelectedDate(null)
-    }, 500) // 500ms delay to allow moving to modal
-    
-    setHoverTimeout(timeout)
-  }
-
-  const handleModalEnter = () => {
-    // Clear timeout when mouse enters modal
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout)
-      setHoverTimeout(null)
-    }
-  }
-
-  const handleModalLeave = () => {
-    // Close modal when mouse leaves modal
-    setIsModalOpen(false)
-    setSelectedDate(null)
   }
 
   const closeModal = () => {
@@ -432,8 +411,7 @@ export default function UserCalendarView() {
               ? 'bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border-blue-200/60 hover:shadow-lg cursor-pointer hover:scale-105 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90' 
               : 'hover:bg-slate-50/80 cursor-default hover:shadow-sm'
           } ${isToday ? 'bg-gradient-to-br from-amber-100/90 to-yellow-100/90 border-amber-300/70 shadow-md' : ''}`}
-          onMouseEnter={(e) => handleDateHover(dateString, e)}
-          onMouseLeave={handleDateLeave}
+          onClick={(e) => handleDateClick(dateString, e)}
         >
           <div className="flex items-center justify-between h-full">
             <span className={`text-sm font-bold ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
@@ -498,7 +476,7 @@ export default function UserCalendarView() {
                 </button>
               </div>
               <p className="text-sm text-slate-600 font-medium">
-                Hover over dates with deadlines to view task details
+                Click on dates with deadlines to view task details
               </p>
               {/* Active Filters Display */}
               {(selectedStatus !== 'all' || selectedPriority !== 'all' || searchValue) && (
@@ -624,7 +602,7 @@ export default function UserCalendarView() {
             onClick={closeModal}
           ></div>
 
-          {/* Professional compact modal positioned above the hovered date */}
+          {/* Professional compact modal positioned above the clicked date */}
           <div 
             className="fixed bg-white/98 backdrop-blur-md rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-60 border border-slate-200/60"
             style={{
@@ -632,8 +610,6 @@ export default function UserCalendarView() {
               top: clickPosition.y,
               zIndex: 60
             }}
-            onMouseEnter={handleModalEnter}
-            onMouseLeave={handleModalLeave}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-3 py-2">

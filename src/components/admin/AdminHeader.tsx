@@ -113,11 +113,11 @@ export default function AdminHeader() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </div>
-            <input
+            {/* <input
               type="text"
               placeholder="Search or type command..."
               className="block w-full pl-10 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
+            /> */}
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
               <kbd className="inline-flex items-center px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-600">
                 ⌘K
@@ -148,7 +148,7 @@ export default function AdminHeader() {
         </button>
 
         {/* Search Bar - TailAdmin Style */}
-        <div className="relative hidden sm:block">
+        {/* <div className="relative hidden sm:block">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </div>
@@ -163,7 +163,7 @@ export default function AdminHeader() {
               ⌘K
             </kbd>
           </div>
-        </div>
+        </div> */}
       </div>
       
       <div className="flex items-center gap-x-4 lg:gap-x-6">
