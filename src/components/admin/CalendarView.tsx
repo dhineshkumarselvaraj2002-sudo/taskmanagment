@@ -586,71 +586,14 @@ export default function CalendarView() {
             </div>
             <div className="flex items-center space-x-2">
               {/* Year Navigation */}
-              <button
-                onClick={goToPreviousYear}
-                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
-                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
-                }`}
-                title="Previous Year"
-                disabled={isTransitioning}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
+             
               
               {/* Month Navigation */}
-              <button
-                onClick={goToPreviousMonth}
-                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
-                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
-                }`}
-                title="Previous Month"
-                disabled={isTransitioning}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
               
-              {/* Today Button */}
-              <button
-                onClick={goToToday}
-                className={`px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-gradient-to-r from-slate-100 to-slate-200 rounded-xl transition-all duration-200 hover:shadow-md ${
-                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
-                }`}
-                disabled={isTransitioning}
-              >
-                Today
-              </button>
               
-              {/* Month Navigation */}
-              <button
-                onClick={goToNextMonth}
-                className={`p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 hover:shadow-md ${
-                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
-                }`}
-                title="Next Month"
-                disabled={isTransitioning}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+            
               
-              {/* Year Navigation */}
-              <button
-                onClick={goToNextYear}
-                className={`p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all duration-200 ${
-                  isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'
-                }`}
-                title="Next Year"
-                disabled={isTransitioning}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-              </button>
+            
             </div>
           </div>
           <div className="h-[400px] overflow-auto">
