@@ -5,8 +5,12 @@ import Link from 'next/link'
 import { ExtendedTask } from '@/types'
 import { format } from 'date-fns'
 import { Clock, User, CheckCircle, AlertCircle } from 'lucide-react'
+import { useAdminTaskEvents } from '@/hooks/use-admin-task-events'
 
 export default function UserRecentTasks() {
+  // Listen for admin task events to automatically update user task data
+  useAdminTaskEvents()
+  
   const [tasks, setTasks] = useState<ExtendedTask[]>([])
   const [loading, setLoading] = useState(true)
 

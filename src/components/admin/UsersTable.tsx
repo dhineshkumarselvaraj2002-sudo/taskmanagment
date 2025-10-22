@@ -8,8 +8,6 @@ import {
   TrashIcon, 
   EyeIcon,
   UserIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -26,7 +24,6 @@ export default function UsersTable() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
-  const [status, setStatus] = useState('')
   const [dateRange, setDateRange] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -38,7 +35,6 @@ export default function UsersTable() {
   // Temporary filter values
   const [tempSearch, setTempSearch] = useState('')
   const [tempRole, setTempRole] = useState('')
-  const [tempStatus, setTempStatus] = useState('')
   const [tempDateRange, setTempDateRange] = useState('')
   
   // Debounced search
@@ -52,7 +48,6 @@ export default function UsersTable() {
         limit: '5',
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(role && { role }),
-        ...(status && { status }),
         ...(dateRange && { dateRange })
       })
       
@@ -79,42 +74,36 @@ export default function UsersTable() {
 
   useEffect(() => {
     fetchUsers()
-  }, [page, debouncedSearch, role, status, dateRange])
+  }, [page, debouncedSearch, role, dateRange])
 
   // Initialize temp values when filters change
   useEffect(() => {
     setTempRole(role)
-    setTempStatus(status)
     setTempDateRange(dateRange)
-  }, [role, status, dateRange])
+  }, [role, dateRange])
 
   // Filter functions
   const hasTempChanges = () => {
     return tempRole !== role || 
-           tempStatus !== status || 
            tempDateRange !== dateRange
   }
 
   const applyFilters = () => {
     setRole(tempRole)
-    setStatus(tempStatus)
     setDateRange(tempDateRange)
     setPage(1)
   }
 
   const resetTempFilters = () => {
     setTempRole(role)
-    setTempStatus(status)
     setTempDateRange(dateRange)
   }
 
   const clearFilters = () => {
     setSearch('')
     setRole('')
-    setStatus('')
     setDateRange('')
     setTempRole('')
-    setTempStatus('')
     setTempDateRange('')
     setPage(1)
     // Force a refetch after clearing filters
@@ -125,7 +114,6 @@ export default function UsersTable() {
 
   const clearTempFilters = () => {
     setTempRole('')
-    setTempStatus('')
     setTempDateRange('')
     setSearch('')
   }
@@ -134,7 +122,6 @@ export default function UsersTable() {
     let count = 0
     if (search) count++
     if (role) count++
-    if (status) count++
     if (dateRange) count++
     return count
   }
@@ -143,7 +130,6 @@ export default function UsersTable() {
     let count = 0
     if (search) count++
     if (tempRole) count++
-    if (tempStatus) count++
     if (tempDateRange) count++
     return count
   }
@@ -253,18 +239,6 @@ export default function UsersTable() {
                     </select>
                   </div>
 
-                  {/* Status Filter */}
-                  <div className="w-32">
-                    <select
-                      value={tempStatus}
-                      onChange={(e) => setTempStatus(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">All Status</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
 
                   {/* Date Range Filter */}
                   <div className="w-36">
@@ -329,9 +303,6 @@ export default function UsersTable() {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tasks
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -370,20 +341,6 @@ export default function UsersTable() {
                       }`}>
                         {user.role}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {user.isActive ? (
-                          <CheckCircleIcon className="h-5 w-5 text-green-400 mr-2" />
-                        ) : (
-                          <XCircleIcon className="h-5 w-5 text-red-400 mr-2" />
-                        )}
-                        <span className={`text-sm ${
-                          user.isActive ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user._count?.assignedTasks || 0} assigned

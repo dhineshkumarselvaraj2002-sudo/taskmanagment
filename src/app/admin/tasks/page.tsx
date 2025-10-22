@@ -7,12 +7,16 @@ import ModernFilters from '@/components/admin/ModernFilters'
 import { SearchParams } from '@/types'
 import { CheckSquare } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useUserTaskEvents } from '@/hooks/use-admin-task-events'
 
 interface TasksPageProps {
   searchParams: Promise<SearchParams>
 }
 
 export default function TasksPage({ searchParams }: TasksPageProps) {
+  // Listen for user task events to automatically update admin task data
+  useUserTaskEvents()
+  
   const { toast } = useToast()
   const [searchValue, setSearchValue] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')

@@ -24,9 +24,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     name: user.name,
     email: user.email,
     password: '',
-    role: user.role,
-    isActive: user.isActive,
-    emailNotifications: user.emailNotifications
+    role: user.role
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -286,40 +284,14 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         return (
           <div className="space-y-8">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="flex items-center space-x-3 p-4 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded-lg transition-all duration-200"
-                  />
-                  <div>
-                    <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
-                      Active Account
-                    </label>
-                    <p className="text-xs text-gray-500">User can log in and access the system</p>
-                  </div>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-
-                <div className="flex items-center space-x-3 p-4 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200">
-                  <input
-                    type="checkbox"
-                    name="emailNotifications"
-                    id="emailNotifications"
-                    checked={formData.emailNotifications}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded-lg transition-all duration-200"
-                  />
-                  <div>
-                    <label htmlFor="emailNotifications" className="text-sm font-medium text-gray-900">
-                      Email Notifications
-                    </label>
-                    <p className="text-xs text-gray-500">Receive system notifications via email</p>
-                  </div>
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review Changes</h3>
+                <p className="text-sm text-gray-600">Please review your changes before updating the user.</p>
               </div>
             </div>
           </div>

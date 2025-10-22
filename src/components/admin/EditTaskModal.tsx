@@ -31,7 +31,6 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
     taskDescription: task.taskDescription,
     startDate: new Date(task.startDate),
     endDate: new Date(task.endDate),
-    status: task.status,
     priority: task.priority,
     category: task.category || '',
     tags: task.tags || [],
@@ -135,6 +134,17 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
         // Dispatch event to refresh notifications immediately
         window.dispatchEvent(new CustomEvent('taskUpdated', { 
           detail: { taskId: data.id, taskName: formData.taskName } 
+        }))
+        
+        // Dispatch event for user interfaces to update their task lists
+        window.dispatchEvent(new CustomEvent('adminTaskUpdated', { 
+          detail: { 
+            taskId: data.id, 
+            taskName: formData.taskName,
+            assignedToId: formData.assignedToId,
+            task: data,
+            isUserModal
+          } 
         }))
         // Show success toast and close modal only after successful update
         toast({
@@ -322,33 +332,7 @@ export default function EditTaskModal({ task, users, onClose, onSave, isUserModa
         return (
           <div className="space-y-8">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <label htmlFor="status" className="block text-sm font-semibold text-gray-900 mb-3">
-                    Status
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="status"
-                      id="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="block w-full px-4 py-4 text-gray-900 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all duration-200 appearance-none cursor-pointer"
-                    >
-                      <option value="TODO">To Do</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="IN_REVIEW">In Review</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="BLOCKED">Blocked</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="priority" className="block text-sm font-semibold text-gray-900 mb-3">
                     Priority

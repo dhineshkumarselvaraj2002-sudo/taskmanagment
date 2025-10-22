@@ -28,7 +28,6 @@ export default function TasksTable() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('')
   const [priority, setPriority] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
   const [page, setPage] = useState(1)
@@ -37,7 +36,6 @@ export default function TasksTable() {
   const [activeFilters, setActiveFilters] = useState(0)
   
   // Temporary filter values (not applied until Apply button is clicked)
-  const [tempStatus, setTempStatus] = useState('')
   const [tempPriority, setTempPriority] = useState('')
   const [tempAssignedTo, setTempAssignedTo] = useState('')
 
@@ -49,7 +47,6 @@ export default function TasksTable() {
     page,
     limit: 5,
     search: debouncedSearch,
-    status,
     priority,
     assignedTo,
   })
@@ -76,10 +73,8 @@ export default function TasksTable() {
 
   const clearFilters = () => {
     setSearch('')
-    setStatus('')
     setPriority('')
     setAssignedTo('')
-    setTempStatus('')
     setTempPriority('')
     setTempAssignedTo('')
     setPage(1)
@@ -91,36 +86,32 @@ export default function TasksTable() {
   }
 
   const applyFilters = () => {
-    setStatus(tempStatus)
     setPriority(tempPriority)
     setAssignedTo(tempAssignedTo)
     setPage(1)
   }
 
   const resetTempFilters = () => {
-    setTempStatus(status)
     setTempPriority(priority)
     setTempAssignedTo(assignedTo)
   }
 
   // Check if any temp values are different from applied values
   const hasTempChanges = () => {
-    return tempStatus !== status || tempPriority !== priority || tempAssignedTo !== assignedTo
+    return tempPriority !== priority || tempAssignedTo !== assignedTo
   }
 
   // Initialize temp values when filter panel opens
   useEffect(() => {
     if (showFilters) {
-      setTempStatus(status)
       setTempPriority(priority)
       setTempAssignedTo(assignedTo)
     }
-  }, [showFilters, status, priority, assignedTo])
+  }, [showFilters, priority, assignedTo])
 
   const getActiveFilterCount = () => {
     let count = 0
     // Only count actual filter options, not search
-    if (status) count++
     if (priority) count++
     if (assignedTo) count++
     return count
@@ -132,6 +123,15 @@ export default function TasksTable() {
       // Dispatch event to refresh notifications immediately
       window.dispatchEvent(new CustomEvent('taskDeleted', { 
         detail: { taskId: task.id, taskName: task.taskName } 
+      }))
+      
+      // Dispatch event for user interfaces to update their task lists
+      window.dispatchEvent(new CustomEvent('adminTaskDeleted', { 
+        detail: { 
+          taskId: task.id, 
+          taskName: task.taskName,
+          assignedToId: task.assignedToId
+        } 
       }))
       toast({
         title: "Task Deleted Successfully",
@@ -149,22 +149,6 @@ export default function TasksTable() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800'
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800'
-      case 'IN_REVIEW':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'BLOCKED':
-        return 'bg-red-100 text-red-800'
-      case 'TODO':
-        return 'bg-stone-200 text-gray-800'
-      default:
-        return 'bg-stone-200 text-gray-800'
-    }
-  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -232,23 +216,7 @@ export default function TasksTable() {
             {/* Simple Filters Panel */}
             {showFilters && (
               <div className="bg-stone-200 rounded-lg p-3 border border-gray-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Status Filter */}
-                  <div>
-                    <select
-                      value={tempStatus}
-                      onChange={(e) => setTempStatus(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">All Status</option>
-                      <option value="TODO">To Do</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="IN_REVIEW">In Review</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="BLOCKED">Blocked</option>
-                    </select>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {/* Priority Filter */}
                   <div>
                     <select
@@ -327,9 +295,6 @@ export default function TasksTable() {
                     Assigned To
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -383,11 +348,6 @@ export default function TasksTable() {
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>

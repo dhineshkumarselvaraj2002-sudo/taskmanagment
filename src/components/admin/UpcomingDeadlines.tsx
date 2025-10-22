@@ -5,8 +5,12 @@ import Link from 'next/link'
 import { ExtendedTask } from '@/types'
 import { format, isAfter, isBefore, addDays } from 'date-fns'
 import { Calendar, AlertTriangle, Clock } from 'lucide-react'
+import { useUserTaskEvents } from '@/hooks/use-admin-task-events'
 
 export default function UpcomingDeadlines() {
+  // Listen for user task events to automatically update admin task data
+  useUserTaskEvents()
+  
   const [tasks, setTasks] = useState<ExtendedTask[]>([])
   const [loading, setLoading] = useState(true)
 

@@ -10,8 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Filter, Search, Calendar, Clock, User, Eye, Edit, Trash2, CheckCircle, AlertCircle, XCircle, Play, X } from 'lucide-react'
 import TaskDetailModal from '@/components/user/TaskDetailModal'
 import { ExtendedTask, TaskStatus } from '@/types'
+import { useAdminTaskEvents } from '@/hooks/use-admin-task-events'
 
 export default function UserTasksPage() {
+  // Listen for admin task events to automatically update user task data
+  useAdminTaskEvents()
+  
   // State for filtering and search
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -324,7 +328,7 @@ export default function UserTasksPage() {
               </div>
             </div>
 
-            <div className="group relative bg-red-0 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
+            <div className="group relative bg-red-100 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:bg-stone-200">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
                   <AlertCircle className="h-4 w-4 text-red-600" />
